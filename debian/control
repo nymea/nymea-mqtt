@@ -1,0 +1,35 @@
+Source: nymea-mqtt
+Section: comm
+Priority: optional
+Maintainer: Michael Zanetti <michael.zanetti@guh.io>
+Build-Depends:
+ qtbase5-dev,
+Standards-Version: 4.0.0
+Homepage: http://nymea.io
+
+Package: libnymea-mqtt
+Architecture: any
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: nymea-mqtt libraries
+ nymea-mqtt is a mqtt broker implementation
+
+Package: libnymea-mqtt-dev
+Section: devel
+Architecture: any
+Depends:
+ libnymea-mqtt (=${binary:Version}),
+ ${misc:Depends},
+Description: nymea-mqtt libaries - development files
+ nymea-mqtt is a mqtt broker implementation. This package contains
+ related development files.
+
+Package: nymea-mqtt-server
+Architecture: any
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: nymea-mqtt standalone server
+ nymea-mqtt is a mqtt broker implementation. This package contains
+ a standalone mqtt server.

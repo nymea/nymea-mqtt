@@ -1,8 +1,13 @@
+TARGET = nymea-mqtt
+
 QT -= gui
 QT += network
 
-CONFIG += c++11 console static
+CONFIG += c++11 console static shared
 CONFIG -= app_bundle
+
+target.path = /usr/lib/$$system('dpkg-architecture -q DEB_HOST_MULTIARCH')
+INSTALLS += target
 
 SOURCES += \
     mqttserver.cpp \
@@ -10,13 +15,16 @@ SOURCES += \
     mqttsubscription.cpp \
     $$PWD/mqttclient.cpp
 
-HEADERS += \
+PRIVATE_HEADERS = \
+    mqttpacket_p.h \
+    mqttclient_p.h \
+    mqttserver_p.h
+
+PUBLIC_HEADERS = \
     mqttserver.h \
     mqttpacket.h \
     mqtt.h \
     mqttsubscription.h \
-    $$PWD/mqttclient.h \
-    $$PWD/mqttpacket_p.h \
-    $$PWD/mqttclient_p.h \
-    $$PWD/mqttserver_p.h
+    mqttclient.h \
 
+HEADERS += $$PRIVATE_HEADERS + $$PUBLIC_HEADERS
