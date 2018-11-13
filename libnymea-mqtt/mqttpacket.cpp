@@ -111,7 +111,11 @@ void MqttPacket::setRetain(bool retain)
 
 void MqttPacket::setCleanSession(bool cleanSession)
 {
-    d_ptr->connectFlags.setFlag(Mqtt::ConnectFlagCleanSession, cleanSession);
+    if (cleanSession) {
+        d_ptr->connectFlags |= Mqtt::ConnectFlagCleanSession;
+    } else {
+        d_ptr->connectFlags &= ~Mqtt::ConnectFlagCleanSession;
+    }
 }
 
 bool MqttPacket::cleanSession() const
@@ -157,7 +161,11 @@ QByteArray MqttPacket::willTopic() const
 void MqttPacket::setWillTopic(const QByteArray &willTopic)
 {
     d_ptr->willTopic = willTopic;
-    d_ptr->connectFlags.setFlag(Mqtt::ConnectFlagWill, !willTopic.isEmpty());
+    if (!willTopic.isEmpty()) {
+        d_ptr->connectFlags |= Mqtt::ConnectFlagWill;
+    } else {
+        d_ptr->connectFlags &= ~Mqtt::ConnectFlagWill;
+    }
 }
 
 QByteArray MqttPacket::willMessage() const
@@ -183,8 +191,13 @@ Mqtt::QoS MqttPacket::willQoS() const
 
 void MqttPacket::setWillQoS(Mqtt::QoS willQoS)
 {
-    d_ptr->connectFlags.setFlag(Mqtt::ConnectFlagWillQoS1, willQoS == Mqtt::QoS1);
-    d_ptr->connectFlags.setFlag(Mqtt::ConnectFlagWillQoS2, willQoS == Mqtt::QoS2);
+    d_ptr->connectFlags &= ~Mqtt::ConnectFlagWillQoS1;
+    d_ptr->connectFlags &= ~Mqtt::ConnectFlagWillQoS2;
+    if (willQoS == Mqtt::QoS1) {
+        d_ptr->connectFlags |= Mqtt::ConnectFlagWillQoS1;
+    } else if (willQoS == Mqtt::QoS2) {
+        d_ptr->connectFlags |= Mqtt::ConnectFlagWillQoS2;
+    }
 }
 
 bool MqttPacket::willRetain() const
@@ -194,7 +207,11 @@ bool MqttPacket::willRetain() const
 
 void MqttPacket::setWillRetain(bool willRetain)
 {
-    d_ptr->connectFlags.setFlag(Mqtt::ConnectFlagWillRetain, willRetain);
+    if (willRetain) {
+        d_ptr->connectFlags |= Mqtt::ConnectFlagWillRetain;
+    } else {
+        d_ptr->connectFlags &= ~Mqtt::ConnectFlagWillRetain;
+    }
 }
 
 QByteArray MqttPacket::username() const
@@ -205,7 +222,11 @@ QByteArray MqttPacket::username() const
 void MqttPacket::setUsername(const QByteArray &username)
 {
     d_ptr->username = username;
-    d_ptr->connectFlags.setFlag(Mqtt::ConnectFlagUsername, !username.isEmpty());
+    if (!username.isEmpty()) {
+        d_ptr->connectFlags |= Mqtt::ConnectFlagUsername;
+    } else {
+        d_ptr->connectFlags &= ~Mqtt::ConnectFlagUsername;
+    }
 }
 
 QByteArray MqttPacket::password() const
@@ -216,7 +237,11 @@ QByteArray MqttPacket::password() const
 void MqttPacket::setPassword(const QByteArray &password)
 {
     d_ptr->password = password;
-    d_ptr->connectFlags.setFlag(Mqtt::ConnectFlagPassword, !password.isEmpty());
+    if (!password.isEmpty()) {
+        d_ptr->connectFlags |= Mqtt::ConnectFlagPassword;
+    } else {
+        d_ptr->connectFlags &= ~Mqtt::ConnectFlagPassword;
+    }
 }
 
 quint16 MqttPacket::keepAlive() const

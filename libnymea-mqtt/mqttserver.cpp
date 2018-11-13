@@ -501,10 +501,10 @@ bool MqttServerPrivate::validateTopicFilter(const QString &topicFilter)
     QStringList parts = topicFilter.split('/');
     for (int i = 0; i < parts.count(); i++) {
         const QString &part = parts.at(i);
-        if (part.contains('#') && (part != '#' || i != parts.count() - 1)) {
+        if (part.contains(QStringLiteral("#")) && (part != QStringLiteral("#") || i != parts.count() - 1)) {
             return false;
         }
-        if (part.contains('+') && part != '+') {
+        if (part.contains(QStringLiteral("+")) && part != QStringLiteral("+")) {
             return false;
         }
     }
@@ -526,10 +526,10 @@ bool MqttServerPrivate::matchTopic(const QString &topicFilter, const QString &to
     }
 
     for (int i = 0; i < filterParts.count(); i++) {
-        if (filterParts.at(i) == '+') {
+        if (filterParts.at(i) == QStringLiteral("+")) {
             continue;
         }
-        if (filterParts.at(i) == '#') {
+        if (filterParts.at(i) == QStringLiteral("#")) {
             continue;
         }
         if (topicParts.at(i) == filterParts.at(i)) {
