@@ -38,7 +38,6 @@ class MqttClientPrivate: public QObject
 public:
     MqttClientPrivate(MqttClient *q);
     MqttClient *q_ptr;
-    ~MqttClientPrivate() { qDebug() << "destroying client private" << this; }
 
     void connectToHost(const QString &hostName, quint16 port, bool cleanSession);
     void disconnectFromHost();

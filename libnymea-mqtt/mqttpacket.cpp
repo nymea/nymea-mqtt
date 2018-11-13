@@ -315,7 +315,7 @@ int MqttPacket::parse(const QByteArray &buffer)
         return 0;
     }
     QDataStream inputStream(buffer);
-    qCDebug(dbgProto()) << "MQTT input data:\n" << buffer.toHex();
+//    qCDebug(dbgProto()) << "MQTT input data:\n" << buffer.toHex();
 
     inputStream >> d_ptr->header;
 
