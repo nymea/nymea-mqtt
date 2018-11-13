@@ -30,10 +30,11 @@ class OperationTests: public QObject
 {
     Q_OBJECT
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 7, 0))
+
 private slots:
     void initTestCase();
     void cleanup();
-
     void connectAndDisconnect();
     void keepAliveTimesOut();
 
@@ -91,7 +92,10 @@ private:
     MqttServer *m_server = nullptr;
 
     QList<MqttClient*> m_clients;
+#endif
 };
+
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 7, 0))
 
 MqttClient *OperationTests::connectAndWait(const QString &clientId, bool cleanSession, quint16 keepAlive, const QString &willTopic, const QString &willMessage, Mqtt::QoS willQoS, bool willRetain)
 {
@@ -809,6 +813,7 @@ void OperationTests::testEmptyClientId()
     QTRY_COMPARE(client3.second->first().at(0).value<Mqtt::ConnectReturnCode>(), Mqtt::ConnectReturnCodeIdentifierRejected);
 }
 
+#endif
 
 QTEST_MAIN(OperationTests)
 #include "test_operation.moc"
