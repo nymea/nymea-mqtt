@@ -106,6 +106,16 @@ bool MqttServer::listen(const QHostAddress &address, quint16 port, MqttUserValid
     return true;
 }
 
+bool MqttServer::isListening() const
+{
+    return d_ptr->server->isListening();
+}
+
+void MqttServer::close()
+{
+    d_ptr->server->close();
+}
+
 QStringList MqttServer::clients() const
 {
     QStringList clientIds;

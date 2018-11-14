@@ -49,6 +49,8 @@ public:
     void setMaximumSubscriptionsQoS(Mqtt::QoS maximumSubscriptionQoS);
 
     bool listen(const QHostAddress &address = QHostAddress::Any, quint16 port = 1883, MqttUserValidator *userValidator = nullptr);
+    bool isListening() const;
+    void close();
 
     QStringList clients() const;
 
