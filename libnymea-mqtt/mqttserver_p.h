@@ -34,6 +34,7 @@ Q_DECLARE_LOGGING_CATEGORY(dbgServer)
 
 class ClientContext;
 class Subscription;
+class SslServer;
 
 class MqttServerPrivate: public QObject
 {
@@ -52,16 +53,15 @@ public:
     quint16 newPacketId(ClientContext *ctx);
 
 public slots:
-    void onNewConnection();
-    void onClientReadyRead();
-    void onClientError(QAbstractSocket::SocketError);
-    void onClientDisconnected();
+    void onClientConnected(QSslSocket *client);
+    void onDataAvailable(QSslSocket *client, const QByteArray &data);
+    void onClientDisconnected(QSslSocket *client);
 
 public:
     MqttServer *q_ptr;
 
-    QTcpServer *server = nullptr;
-    MqttUserValidator *userValidator = nullptr;
+    QHash<int, SslServer*> servers;
+    MqttAuthorizer *authorizer = nullptr;
 
     Mqtt::QoS maximumSubscriptionQoS = Mqtt::QoS2;
 
@@ -69,6 +69,7 @@ public:
     QHash<QTcpSocket*, ClientContext*> clientList;
     QHash<QTcpSocket*, QByteArray> clientBuffers;
     QHash<QString, MqttPackets> retainedMessages;
+    QHash<QTcpSocket*, SslServer*> clientServerMap;
 };
 
 class ClientContext {
@@ -88,6 +89,33 @@ public:
 
     QVector<quint16> unackedPacketList;
     QHash<quint16, MqttPacket> unackedPackets;
+};
+
+class SslServer: public QTcpServer
+{
+    Q_OBJECT
+public:
+    SslServer(const QSslConfiguration &config, QObject *parent = nullptr):
+        QTcpServer(parent),
+        m_config(config)
+    {
+
+    }
+
+signals:
+    void clientConnected(QSslSocket *socket);
+    void clientDisconnected(QSslSocket *socket);
+    void dataAvailable(QSslSocket *socket, const QByteArray &data);
+
+protected:
+    void incomingConnection(qintptr socketDescriptor) override;
+
+private slots:
+    void onClientDisconnected();
+    void onSocketReadyRead();
+
+private:
+    QSslConfiguration m_config;
 };
 
 #endif // MQTTSERVER_P_H

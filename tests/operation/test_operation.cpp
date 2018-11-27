@@ -178,7 +178,7 @@ void OperationTests::connectAndDisconnect()
     MqttClient* client = connectAndWait(clientId);
 
     QVERIFY2(serverSpy.count() == 1, "Server didn't emit clientConnected");
-    QVERIFY2(serverSpy.at(0).first() == clientId, "ClientId not matching on server side.");
+    QVERIFY2(serverSpy.at(0).at(1) == clientId, "ClientId not matching on server side.");
 
     QSignalSpy serverSpyDisconnect(m_server, &MqttServer::clientDisconnected);
     QSignalSpy clientSpy(client, &MqttClient::disconnected);
@@ -382,13 +382,11 @@ void OperationTests::testQoS1Retransmissions()
     QCOMPARE(serverSpy.at(0).at(1).toInt(), packetId);
     QCOMPARE(serverSpy.at(0).at(2).toString(), QString("/testtopic"));
     QCOMPARE(serverSpy.at(0).at(3).toString(), QString("Hello world"));
-    QCOMPARE(serverSpy.at(0).at(4).toBool(), false);
 
     QCOMPARE(serverSpy.at(1).at(0).toString(), QString("client1"));
     QCOMPARE(serverSpy.at(1).at(1).toInt(), packetId);
     QCOMPARE(serverSpy.at(1).at(2).toString(), QString("/testtopic"));
     QCOMPARE(serverSpy.at(1).at(3).toString(), QString("Hello world"));
-    QCOMPARE(serverSpy.at(1).at(4).toBool(), true);
 }
 
 void OperationTests::testMultiSubscription()
@@ -811,6 +809,7 @@ void OperationTests::testEmptyClientId()
     QPair<MqttClient*, QSignalSpy*> client3 = connectToServer("", false);
     QTRY_VERIFY2(client3.second->count() == 1, "Client did not emit connected signal");
     QTRY_COMPARE(client3.second->first().at(0).value<Mqtt::ConnectReturnCode>(), Mqtt::ConnectReturnCodeIdentifierRejected);
+    QTRY_VERIFY2(client3.first->isConnected() == false, "Connection should have been dropped");
 }
 
 #endif

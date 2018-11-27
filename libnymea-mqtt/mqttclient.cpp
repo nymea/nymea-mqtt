@@ -30,12 +30,18 @@ MqttClientPrivate::MqttClientPrivate(MqttClient *q):
 {
     qRegisterMetaType<Mqtt::SubscribeReturnCodes>();
     qRegisterMetaType<Mqtt::ConnackFlags>();
+    reconnectTimer.setSingleShot(true);
+    connect(&reconnectTimer, &QTimer::timeout, this, &MqttClientPrivate::reconnectTimerTimeout);
 }
 
 void MqttClientPrivate::connectToHost(const QString &hostName, quint16 port, bool cleanSession)
 {
-    serverHostname = hostName;
-    serverPort = port;
+    if (serverHostname != hostName || serverPort != port) {
+        serverHostname = hostName;
+        serverPort = port;
+        reconnectAttempt = 1;
+        reconnectTimer.stop();
+    }
     this->cleanSession = cleanSession;
 
     sessionActive = true;
@@ -98,6 +104,16 @@ bool MqttClient::autoReconnect() const
 void MqttClient::setAutoReconnect(bool autoReconnect)
 {
     d_ptr->autoReconnect = autoReconnect;
+}
+
+quint16 MqttClient::maxAutoReconnectTimeout() const
+{
+    return d_ptr->maxReconnectTimeout;
+}
+
+void MqttClient::setMaxAutoReconnectTimeout(quint16 maxAutoReconnectTimeout)
+{
+    d_ptr->maxReconnectTimeout = maxAutoReconnectTimeout;
 }
 
 void MqttClient::setKeepAlive(quint16 keepAlive)
@@ -262,7 +278,10 @@ void MqttClientPrivate::onDisconnected()
     qCDebug(dbgClient) << "Disconnected from server";
     emit q_ptr->disconnected();
     if (sessionActive && autoReconnect) {
-        connectToHost(serverHostname, serverPort, cleanSession);
+        reconnectAttempt = qMin(maxReconnectTimeout / 60 / 60, reconnectAttempt * 2);
+        qCDebug(dbgClient) << "Reconnecint in" << reconnectAttempt << "seconds";
+        reconnectTimer.setInterval(reconnectAttempt * 1000);
+        reconnectTimer.start();
     }
 }
 
@@ -287,18 +306,23 @@ void MqttClientPrivate::onReadyRead()
 
     switch (packet.type()) {
     case MqttPacket::TypeConnack:
-        emit q_ptr->connected(packet.connectReturnCode(), packet.connackFlags());
         if (packet.connectReturnCode() != Mqtt::ConnectReturnCodeAccepted) {
             qCWarning(dbgClient) << "MQTT connection refused:" << packet.connectReturnCode();
+            // Always emit connected, even if just to indicate a "ClientRefusedError"
+            emit q_ptr->connected(packet.connectReturnCode(), packet.connackFlags());
             socket->abort();
-            emit q_ptr->disconnected();
+            emit q_ptr->error(QAbstractSocket::ConnectionRefusedError);
             return;
         }
         foreach (quint16 retryPacketId, unackedPacketList) {
             MqttPacket retryPacket = unackedPackets.value(retryPacketId);
-            retryPacket.setDup(true);
+            if (retryPacket.type() == MqttPacket::TypePublish) {
+                retryPacket.setDup(true);
+            }
             socket->write(retryPacket.serialize());
         }
+        // Make sure we emit connected after having handled all the retransmission queue
+        emit q_ptr->connected(packet.connectReturnCode(), packet.connackFlags());
         restartKeepAliveTimer();
         break;
     case MqttPacket::TypePublish:
@@ -412,4 +436,12 @@ void MqttClientPrivate::restartKeepAliveTimer()
     if (keepAlive > 0) {
         keepAliveTimer.start(keepAlive * 1000);
     }
+}
+
+void MqttClientPrivate::reconnectTimerTimeout()
+{
+    if (!autoReconnect) {
+        return;
+    }
+    connectToHost(serverHostname, serverPort, false);
 }

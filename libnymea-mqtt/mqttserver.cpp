@@ -35,9 +35,6 @@ MqttServerPrivate::MqttServerPrivate(MqttServer *q):
     q_ptr(q)
 {
     qRegisterMetaType<Mqtt::QoS>();
-
-    server = new QTcpServer(this);
-    connect(server, &QTcpServer::newConnection, this, &MqttServerPrivate::onNewConnection);
 }
 
 QHash<QString, quint16> MqttServerPrivate::publish(const QString &topic, const QByteArray &payload)
@@ -94,26 +91,56 @@ void MqttServer::setMaximumSubscriptionsQoS(Mqtt::QoS maximumSubscriptionQoS)
     d_ptr->maximumSubscriptionQoS = maximumSubscriptionQoS;
 }
 
-bool MqttServer::listen(const QHostAddress &address, quint16 port, MqttUserValidator *userValidator)
+void MqttServer::setAuthorizer(MqttAuthorizer *authorizer)
 {
-    d_ptr->userValidator = userValidator;
+    d_ptr->authorizer = authorizer;
+}
 
-    if (!d_ptr->server->listen(address, port)) {
-        qCWarning(dbgServer()) << "Error listening on port" << port;
-        return false;
+int MqttServer::listen(const QHostAddress &address, quint16 port, const QSslConfiguration &sslConfiguration)
+{
+    SslServer *server = new SslServer(sslConfiguration);
+    connect(server, &SslServer::clientConnected, d_ptr, &MqttServerPrivate::onClientConnected);
+    connect(server, &SslServer::clientDisconnected, d_ptr, &MqttServerPrivate::onClientDisconnected);
+    connect(server, &SslServer::dataAvailable, d_ptr, &MqttServerPrivate::onDataAvailable);
+
+    if (!server->listen(address, port)) {
+        qCWarning(dbgServer) << "Error listening on port" << port;
+        server->deleteLater();
+        return -1;
     }
-    qCDebug(dbgServer) << "nymea MQTT server running on" << address.toString() << ":" << port;
-    return true;
+    static int addressId = -1;
+    d_ptr->servers.insert(++addressId, server);
+    qCDebug(dbgServer) << "nymea MQTT server running on" << address.toString() << ":" << port << "( Address ID" << addressId << ")";
+    return addressId;
 }
 
-bool MqttServer::isListening() const
+bool MqttServer::isListening(const QHostAddress &address, quint16 port) const
 {
-    return d_ptr->server->isListening();
+    foreach (SslServer *server, d_ptr->servers) {
+        if (server->serverAddress() == address && server->serverPort() == port && server->isListening()) {
+            return true;
+        }
+    }
+    return false;
 }
 
-void MqttServer::close()
+QList<int> MqttServer::listeningAddressIds() const
 {
-    d_ptr->server->close();
+    return d_ptr->servers.keys();
+}
+
+void MqttServer::close(int interfaceId)
+{
+    if (!d_ptr->servers.contains(interfaceId)) {
+        qCWarning(dbgServer) << "No such server address ID" << interfaceId;
+        return;
+    }
+    SslServer *server = d_ptr->servers.take(interfaceId);
+    while (!d_ptr->clientServerMap.keys(server).isEmpty()) {
+        d_ptr->cleanupClient(d_ptr->clientServerMap.keys(server).first());
+    }
+    server->close();
+    server->deleteLater();
 }
 
 QStringList MqttServer::clients() const
@@ -125,14 +152,24 @@ QStringList MqttServer::clients() const
     return clientIds;
 }
 
+void MqttServer::disconnectClient(const QString &clientId)
+{
+    foreach (ClientContext *ctx, d_ptr->clientList) {
+        if (ctx->clientId == clientId) {
+            d_ptr->cleanupClient(d_ptr->clientList.key(ctx));
+            return;
+        }
+    }
+}
+
 QHash<QString, quint16> MqttServer::publish(const QString &topic, const QByteArray &payload)
 {
     return d_ptr->publish(topic, payload);
 }
 
-void MqttServerPrivate::onNewConnection()
+void MqttServerPrivate::onClientConnected(QSslSocket *client)
 {
-    QTcpSocket *client = server->nextPendingConnection();
+    SslServer *server = static_cast<SslServer*>(sender());
 
     // Start a 10 second timer to clean up the connection if we don't get data until then.
     QTimer *timeoutTimer = new QTimer(this);
@@ -143,16 +180,43 @@ void MqttServerPrivate::onNewConnection()
         client->deleteLater();
     });
     timeoutTimer->start(10000);
+    clientServerMap.insert(client, server);
     pendingConnections.insert(client, timeoutTimer);
-
-    connect(client, &QTcpSocket::readyRead, this, &MqttServerPrivate::onClientReadyRead);
-    connect(client, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(onClientError(QAbstractSocket::SocketError)));
-    connect(client, &QTcpSocket::disconnected, this, &MqttServerPrivate::onClientDisconnected);
 }
 
-void MqttServerPrivate::onClientDisconnected()
+void MqttServerPrivate::onDataAvailable(QSslSocket *client, const QByteArray &data)
 {
-    QTcpSocket *client = static_cast<QTcpSocket*>(sender());
+    clientBuffers[client].append(data);
+
+    do {
+        MqttPacket packet;
+        int ret = packet.parse(clientBuffers[client]);
+        if (ret == 0) {
+            qCDebug(dbgServer) << "Packet too short... Waiting for more...";
+            return;
+        }
+
+        // Ok, we've got a full packet (or garbage data). If this client is still pending
+        // we can stop the timer, the protocol will take it from here.
+        if (pendingConnections.contains(client)) {
+            pendingConnections.take(client)->deleteLater();
+        }
+
+        if (ret == -1) {
+            qCWarning(dbgServer) << "Bad MQTT packet data, Dropping connection" << packet.serialize().toHex();
+            cleanupClient(client);
+            return;
+        }
+
+        clientBuffers[client].remove(0, ret);
+
+        processPacket(packet, client);
+
+    } while (!clientBuffers.value(client).isEmpty());
+}
+
+void MqttServerPrivate::onClientDisconnected(QSslSocket *client)
+{
     cleanupClient(client);
 }
 
@@ -160,6 +224,9 @@ void MqttServerPrivate::cleanupClient(QTcpSocket *client)
 {
     if (clientBuffers.contains(client)) {
         clientBuffers.remove(client);
+    }
+    if (clientServerMap.contains(client)) {
+        clientServerMap.remove(client);
     }
     if (clientList.contains(client)) {
         ClientContext *ctx = clientList.value(client);
@@ -174,12 +241,20 @@ void MqttServerPrivate::cleanupClient(QTcpSocket *client)
             processPacket(willPacket, client);
         }
 
+        while (!ctx->subscriptions.isEmpty()) {
+            emit q_ptr->clientUnsubscribed(ctx->clientId, ctx->subscriptions.takeFirst().topicFilter());
+        }
+
         emit q_ptr->clientDisconnected(ctx->clientId);
 
         clientList.remove(client);
         delete ctx;
     }
-    client->flush();
+
+    if (client->isOpen()) {
+        client->flush();
+        client->close();
+    }
     client->deleteLater();
 }
 
@@ -215,7 +290,7 @@ void MqttServerPrivate::processPacket(const MqttPacket &packet, QTcpSocket *clie
             clientId = QUuid::createUuid().toString().remove(QRegExp("[{}-]*"));
         }
 
-        if (userValidator) {
+        if (authorizer) {
             QString username;
             if (packet.connectFlags().testFlag(Mqtt::ConnectFlagUsername)) {
                 username = packet.username();
@@ -224,7 +299,9 @@ void MqttServerPrivate::processPacket(const MqttPacket &packet, QTcpSocket *clie
             if (packet.connectFlags().testFlag(Mqtt::ConnectFlagPassword)) {
                 password = packet.password();
             }
-            Mqtt::ConnectReturnCode userValidationReturnCode = userValidator->validateConnect(clientId, username, password, client->peerAddress());
+            SslServer *server = clientServerMap.value(client);
+            int serverAddressId = servers.key(server);
+            Mqtt::ConnectReturnCode userValidationReturnCode = authorizer->authorizeConnect(serverAddressId, clientId, username, password, client->peerAddress());
             if (userValidationReturnCode != Mqtt::ConnectReturnCodeAccepted) {
                 qCWarning(dbgServer) << "Rejecting connection due to user validation.";
                 response.setConnectReturnCode(userValidationReturnCode);
@@ -311,7 +388,7 @@ void MqttServerPrivate::processPacket(const MqttPacket &packet, QTcpSocket *clie
         clientList.insert(client, ctx);
         response.setConnectReturnCode(Mqtt::ConnectReturnCodeAccepted);
         client->write(response.serialize());
-        emit q_ptr->clientConnected(ctx->clientId, ctx->username, client->peerAddress());
+        emit q_ptr->clientConnected(servers.key(clientServerMap.value(client)), ctx->clientId, ctx->username, client->peerAddress());
 
         foreach (quint16 retryPacketId, ctx->unackedPacketList) {
             qCDebug(dbgServer) << "Resending unacked packet" << retryPacketId << "to" << ctx->clientId;;
@@ -336,8 +413,6 @@ void MqttServerPrivate::processPacket(const MqttPacket &packet, QTcpSocket *clie
 
     if (packet.type() == MqttPacket::TypePublish) {
         qCDebug(dbgServer).nospace() << "Publish received from client " << ctx->clientId << ": Topic: " << packet.topic() << ", Payload: " << packet.payload() << " (Packet ID: " << packet.packetId() << ", DUP: " << packet.dup() << ", QoS: " << packet.qos() << ", Retain: " << packet.retain() << ')';
-        emit q_ptr->publishReceived(ctx->clientId, packet.packetId(), packet.topic(), packet.payload(), packet.dup());
-
         switch (packet.qos()) {
         case Mqtt::QoS0:
             break;
@@ -379,6 +454,12 @@ void MqttServerPrivate::processPacket(const MqttPacket &packet, QTcpSocket *clie
             }
         }
 
+        if (authorizer && !authorizer->authorizePublish(servers.key(clientServerMap.value(client)), ctx->clientId, packet.topic())) {
+            qCDebug(dbgServer) << "Client not authorized to publish to this topic. Discarding packet";
+            return;
+        }
+
+        emit q_ptr->publishReceived(ctx->clientId, packet.packetId(), packet.topic(), packet.payload());
         publish(packet.topic(), packet.payload());
 
         return;
@@ -413,8 +494,9 @@ void MqttServerPrivate::processPacket(const MqttPacket &packet, QTcpSocket *clie
 //        qCDebug(dbgServer).nospace() << ctx->clientId ": Subscribe packet received.";
         MqttPacket response(MqttPacket::TypeSuback, packet.packetId());
         QByteArray payload;
+        MqttSubscriptions effectiveSubscriptions;
         foreach (MqttSubscription subscription, packet.subscriptions()) {
-            if (userValidator && !userValidator->validateSubscribe(subscription.topicFilter(), ctx->clientId, ctx->username)) {
+            if (authorizer && !authorizer->authorizeSubscribe(servers.key(clientServerMap.value(client)), ctx->clientId, subscription.topicFilter())) {
                 qCWarning(dbgServer).nospace().noquote() << "Subscription topic filter not allowed for client \"" << ctx->clientId << "\": \"" << subscription.topicFilter() << '\"';
                 response.addSubscribeReturnCode(Mqtt::SubscribeReturnCodeFailure);
                 continue;
@@ -437,6 +519,7 @@ void MqttServerPrivate::processPacket(const MqttPacket &packet, QTcpSocket *clie
                 ctx->subscriptions.append(subscription);
             }
             qCDebug(dbgServer).noquote().nospace() << "Subscribed client \"" << ctx->clientId << "\" to topic filter: \"" << subscription.topicFilter() << "\" with QoS " << subscription.qoS();
+            effectiveSubscriptions << subscription;
             emit q_ptr->clientSubscribed(ctx->clientId, subscription.topicFilter(), subscription.qoS());
             switch (subscription.qoS()) {
             case Mqtt::QoS0:
@@ -453,7 +536,7 @@ void MqttServerPrivate::processPacket(const MqttPacket &packet, QTcpSocket *clie
         client->write(response.serialize());
 
         // Deliver any retained messages for this topic
-        foreach (MqttSubscription subscription, packet.subscriptions()) {
+        foreach (MqttSubscription subscription, effectiveSubscriptions) {
             foreach (const QString &topic, retainedMessages.keys()) {
                 if (matchTopic(subscription.topicFilter(), topic)) {
                     foreach (MqttPacket packet, retainedMessages.value(topic)) {
@@ -560,40 +643,40 @@ quint16 MqttServerPrivate::newPacketId(ClientContext *ctx)
     return packetId;
 }
 
-void MqttServerPrivate::onClientReadyRead()
+void SslServer::incomingConnection(qintptr socketDescriptor)
 {
-    QTcpSocket* client = static_cast<QTcpSocket*>(sender());
+    QSslSocket *sslSocket = new QSslSocket(this);
 
-    clientBuffers[client].append(client->readAll());
+    qCDebug(dbgServer) << "New client socket connection:" << sslSocket;
 
-    do {
-        MqttPacket packet;
-        int ret = packet.parse(clientBuffers[client]);
-        if (ret == 0) {
-            qCDebug(dbgServer) << "Packet too short... Waiting for more...";
-            return;
-        }
+    connect(sslSocket, &QSslSocket::encrypted, [this, sslSocket](){ emit clientConnected(sslSocket); });
+    connect(sslSocket, &QSslSocket::readyRead, this, &SslServer::onSocketReadyRead);
+    connect(sslSocket, &QSslSocket::disconnected, this, &SslServer::onClientDisconnected);
 
-        // Ok, we've got a full packet (or garbage data). If this client is still pending
-        // we can stop the timer, the protocol will take it from here.
-        if (pendingConnections.contains(client)) {
-            pendingConnections.take(client)->deleteLater();
-        }
-
-        if (ret == -1) {
-            qCWarning(dbgServer) << "Bad MQTT packet data, Dropping connection";
-            cleanupClient(client);
-            return;
-        }
-
-        clientBuffers[client].remove(0, ret);
-
-        processPacket(packet, client);
-
-    } while (!clientBuffers.value(client).isEmpty());
+    if (!sslSocket->setSocketDescriptor(socketDescriptor)) {
+        qCWarning(dbgServer) << "Failed to set SSL socket descriptor.";
+        delete sslSocket;
+        return;
+    }
+    if (!m_config.isNull()) {
+        sslSocket->setSslConfiguration(m_config);
+        sslSocket->startServerEncryption();
+    } else {
+        emit clientConnected(sslSocket);
+    }
 }
 
-void MqttServerPrivate::onClientError(QAbstractSocket::SocketError error)
+void SslServer::onClientDisconnected()
 {
-//    qCWarning(dbgServer) << "Client error:" << error;
+    QSslSocket *socket = static_cast<QSslSocket*>(sender());
+    qCDebug(dbgServer) << "Client socket disconnected:" << socket;
+    emit clientDisconnected(socket);
+    socket->deleteLater();
+}
+
+void SslServer::onSocketReadyRead()
+{
+    QSslSocket *socket = static_cast<QSslSocket*>(sender());
+    QByteArray data = socket->readAll();
+    emit dataAvailable(socket, data);
 }

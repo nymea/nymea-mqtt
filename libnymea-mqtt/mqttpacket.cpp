@@ -60,7 +60,9 @@ MqttPacket::MqttPacket(MqttPacket::Type type, quint16 packetId, Mqtt::QoS qos, b
     case TypeSubscribe:
     case TypePubrel:
     case TypeUnsubscribe:
+        setDup(false);
         setQoS(Mqtt::QoS1);
+        setRetain(false);
         break;
     }
 }

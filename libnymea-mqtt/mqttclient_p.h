@@ -52,6 +52,8 @@ public slots:
     void sendPingreq();
     void restartKeepAliveTimer();
 
+    void reconnectTimerTimeout();
+
 public:
     QString serverHostname;
     quint16 serverPort = 0;
@@ -59,6 +61,9 @@ public:
     bool sessionActive = false;
     bool cleanSession = true;
     QTcpSocket *socket = nullptr;
+    QTimer reconnectTimer;
+    int reconnectAttempt = 0;
+    quint16 maxReconnectTimeout = 36000;
 
     QString clientId;
     quint16 keepAlive;

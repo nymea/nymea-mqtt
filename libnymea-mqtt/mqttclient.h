@@ -39,6 +39,9 @@ public:
     bool autoReconnect() const;
     void setAutoReconnect(bool autoReconnect);
 
+    quint16 maxAutoReconnectTimeout() const;
+    void setMaxAutoReconnectTimeout(quint16 maxAutoReconnectTimeout);
+
     quint16 keepAlive() const;
     void setKeepAlive(quint16 keepAlive);
 
