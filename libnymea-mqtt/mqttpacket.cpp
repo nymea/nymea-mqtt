@@ -355,6 +355,10 @@ int MqttPacket::parse(const QByteArray &buffer)
         remainingLength += (lengthBit & 0x7F) * multiplier;
         multiplier *= 128;
         lenFields++;
+        if (multiplier > 128*128*128) {
+            qCWarning(dbgProto) << "Remaining Length field invalid";
+            return -1;
+        }
     } while((lengthBit & 0x80) != 0);
 
     if (remainingLength > buffer.length() - 1 - lenFields) {
@@ -370,7 +374,7 @@ int MqttPacket::parse(const QByteArray &buffer)
     const quint16 fullRemainingLength = remainingLength;
 
     quint16 strLen;
-    const quint16 MAX_STRLEN = 256;
+    const quint16 MAX_STRLEN = remainingLength;
     char str[MAX_STRLEN];
 
     switch (type()) {

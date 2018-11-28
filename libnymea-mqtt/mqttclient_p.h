@@ -39,7 +39,7 @@ public:
     MqttClientPrivate(MqttClient *q);
     MqttClient *q_ptr;
 
-    void connectToHost(const QString &hostName, quint16 port, bool cleanSession);
+    void connectToHost(const QString &hostName, quint16 port, bool cleanSession, bool useSsl, const QSslConfiguration &sslConfiguration);
     void disconnectFromHost();
 
 public slots:
@@ -47,6 +47,8 @@ public slots:
     void onDisconnected();
     void onReadyRead();
     void onSocketStateChanged(QAbstractSocket::SocketState socketState);
+    void onSocketError(QAbstractSocket::SocketError error);
+    void onSslErrors(const QList<QSslError> &errors);
 
     quint16 newPacketId();
     void sendPingreq();
@@ -57,10 +59,12 @@ public slots:
 public:
     QString serverHostname;
     quint16 serverPort = 0;
+    bool useSsl = false;
+    QSslConfiguration sslConfiguration;
     bool autoReconnect = true;
     bool sessionActive = false;
     bool cleanSession = true;
-    QTcpSocket *socket = nullptr;
+    QSslSocket *socket = nullptr;
     QTimer reconnectTimer;
     int reconnectAttempt = 0;
     quint16 maxReconnectTimeout = 36000;

@@ -134,7 +134,7 @@ void OperationTests::disconnectAndWait(MqttClient* client)
 
 bool OperationTests::subscribeAndWait(MqttClient* client, const QString &topic, Mqtt::QoS qos)
 {
-    QSignalSpy subscribedSpy(client, &MqttClient::subscribed);
+    QSignalSpy subscribedSpy(client, &MqttClient::subscribeResult);
     quint16 packetId = client->subscribe(topic, qos);
     if (subscribedSpy.count() == 0) {
         subscribedSpy.wait();
@@ -242,7 +242,7 @@ void OperationTests::subscribeAndPublish()
     MqttClient *client2 = connectAndWait(clientId2);
 
     QSignalSpy serverSubscribeSpy(m_server, &MqttServer::clientSubscribed);
-    QSignalSpy clientSubscribeSpy(client1, &MqttClient::subscribed);
+    QSignalSpy clientSubscribeSpy(client1, &MqttClient::subscribeResult);
 
     quint16 packetId = client1->subscribe("#", qosClient1);
 
@@ -301,7 +301,7 @@ void OperationTests::willIsNotSentOnClientDisconnecting()
     MqttClient *client1 = connectAndWait("subWill-client");
     MqttClient *client2 = connectAndWait("pubWill-client", true, 300, "/testtopic", "Bye bye");
 
-    QSignalSpy subscribeSpy(client1, &MqttClient::subscribed);
+    QSignalSpy subscribeSpy(client1, &MqttClient::subscribeResult);
     QSignalSpy publishSpy(client1, &MqttClient::publishReceived);
 
     client1->subscribe("#");
@@ -318,7 +318,7 @@ void OperationTests::testWillRetain()
     MqttClient *client1 = connectAndWait("subWill-client");
     MqttClient *client2 = connectAndWait("pubWill-client", true, 300, "/testtopic", "Bye bye", Mqtt::QoS1, true);
 
-    QSignalSpy subscribeSpy(client1, &MqttClient::subscribed);
+    QSignalSpy subscribeSpy(client1, &MqttClient::subscribeResult);
     QSignalSpy publishSpy(client1, &MqttClient::publishReceived);
 
     client1->subscribe("#");
@@ -392,7 +392,7 @@ void OperationTests::testQoS1Retransmissions()
 void OperationTests::testMultiSubscription()
 {
     MqttClient *client = connectAndWait("subscription-topics");
-    QSignalSpy subscribedSpy(client, &MqttClient::subscribed);
+    QSignalSpy subscribedSpy(client, &MqttClient::subscribeResult);
 
     MqttSubscriptions subscriptions = { MqttSubscription("topic1"), MqttSubscription("topic2") , MqttSubscription("#invalid") };
     Mqtt::SubscribeReturnCodes subscriptionReturnCodes = { Mqtt::SubscribeReturnCodeSuccessQoS0, Mqtt::SubscribeReturnCodeSuccessQoS0, Mqtt::SubscribeReturnCodeFailure};
@@ -433,7 +433,7 @@ void OperationTests::testSubscriptionTopicFilters()
     QFETCH(Mqtt::SubscribeReturnCode, subscriptionReturnCode);
 
     MqttClient *client = connectAndWait("subscription-topics");
-    QSignalSpy subscribedSpy(client, &MqttClient::subscribed);
+    QSignalSpy subscribedSpy(client, &MqttClient::subscribeResult);
     client->subscribe(topicFilter);
     QTRY_VERIFY2(subscribedSpy.count() == 1, "Subscribed signal not received");
 
@@ -508,7 +508,7 @@ void OperationTests::testSubscriptionTopicMatching()
     MqttClient *publisher = connectAndWait("publisher");
     MqttClient *subscriber = connectAndWait("subscriber");
 
-    QSignalSpy subscribedSpy(subscriber, &MqttClient::subscribed);
+    QSignalSpy subscribedSpy(subscriber, &MqttClient::subscribeResult);
     QSignalSpy publishReceivedSpy(subscriber, &MqttClient::publishReceived);
     QSignalSpy publishedSpy(publisher, &MqttClient::published);
 
@@ -532,7 +532,7 @@ void OperationTests::testSessionManagementDropOldSession()
     MqttClient *client1Session1 = connectAndWait("client1");
     client1Session1->setAutoReconnect(false);
 
-    QSignalSpy subscribeSpy(client1Session1, &MqttClient::subscribed);
+    QSignalSpy subscribeSpy(client1Session1, &MqttClient::subscribeResult);
     client1Session1->subscribe("/testtopic");
     QTRY_VERIFY(subscribeSpy.count() == 1);
 
@@ -564,7 +564,7 @@ void OperationTests::testSessionManagementResumeOldSession()
     MqttClient *client1Session1 = connectAndWait("client1");
     client1Session1->setAutoReconnect(false);
 
-    QSignalSpy subscribeSpy(client1Session1, &MqttClient::subscribed);
+    QSignalSpy subscribeSpy(client1Session1, &MqttClient::subscribeResult);
     client1Session1->subscribe("/testtopic");
     QTRY_VERIFY(subscribeSpy.count() == 1);
 
@@ -623,7 +623,7 @@ void OperationTests::testQoS1PublishToServerIsAckedOnSessionResume()
 void OperationTests::testQoS1PublishToClientIsDeliveredOnSessionResume()
 {
     MqttClient *oldClient1 = connectAndWait("client1", true);
-    QSignalSpy subscribedSpy(oldClient1, &MqttClient::subscribed);
+    QSignalSpy subscribedSpy(oldClient1, &MqttClient::subscribeResult);
     oldClient1->subscribe("/testtopic", Mqtt::QoS1);
     QTRY_VERIFY(subscribedSpy.count() == 1);
 
@@ -668,7 +668,7 @@ void OperationTests::testQoS2PublishToServerIsCompletedOnSessionResume()
 void OperationTests::testQoS2PublishToClientIsCompletedOnSessionResume()
 {
     MqttClient *oldClient1 = connectAndWait("client1", true);
-    QSignalSpy subscribedSpy(oldClient1, &MqttClient::subscribed);
+    QSignalSpy subscribedSpy(oldClient1, &MqttClient::subscribeResult);
     oldClient1->subscribe("/testtopic", Mqtt::QoS2);
     QTRY_VERIFY(subscribedSpy.count() == 1);
 

@@ -23,6 +23,7 @@
 
 #include <QObject>
 #include <QAbstractSocket>
+#include <QSslConfiguration>
 
 #include "mqttpacket.h"
 #include "mqttsubscription.h"
@@ -63,7 +64,7 @@ public:
     QString password() const;
     void setPassword(const QString &password);
 
-    void connectToHost(const QString &hostName, quint16 port, bool cleanSession = true);
+    void connectToHost(const QString &hostName, quint16 port, bool cleanSession = true, bool useSsl = false, const QSslConfiguration &sslConfiguration = QSslConfiguration());
     void disconnectFromHost();
 
     bool isConnected() const;
@@ -85,9 +86,10 @@ signals:
     void stateChanged(QAbstractSocket::SocketState state);
     void error(QAbstractSocket::SocketError socketError);
 
-    void subscribed(quint16 packetId, const Mqtt::SubscribeReturnCodes &subscribeReturnCodes);
+    void subscribeResult(quint16 packetId, const Mqtt::SubscribeReturnCodes &subscribeReturnCodes);
+    void subscribed(const QString &topic, Mqtt::SubscribeReturnCode subscribeReturnCode);
     void unsubscribed(quint16 packetId);
-    void published(quint16 packetId);
+    void published(quint16 packetId, const QString &topic);
     void publishReceived(const QString &topic, const QByteArray &payload, bool retained);
 
 private:

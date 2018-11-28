@@ -31,14 +31,17 @@ MqttClientPrivate::MqttClientPrivate(MqttClient *q):
     qRegisterMetaType<Mqtt::SubscribeReturnCodes>();
     qRegisterMetaType<Mqtt::ConnackFlags>();
     reconnectTimer.setSingleShot(true);
+    connect(&keepAliveTimer, &QTimer::timeout, this, &MqttClientPrivate::sendPingreq);
     connect(&reconnectTimer, &QTimer::timeout, this, &MqttClientPrivate::reconnectTimerTimeout);
 }
 
-void MqttClientPrivate::connectToHost(const QString &hostName, quint16 port, bool cleanSession)
+void MqttClientPrivate::connectToHost(const QString &hostName, quint16 port, bool cleanSession, bool useSsl, const QSslConfiguration &sslConfiguration)
 {
-    if (serverHostname != hostName || serverPort != port) {
+    if (serverHostname != hostName || serverPort != port || this->useSsl != useSsl || sslConfiguration != this->sslConfiguration) {
         serverHostname = hostName;
         serverPort = port;
+        this->useSsl = useSsl;
+        this->sslConfiguration = sslConfiguration;
         reconnectAttempt = 1;
         reconnectTimer.stop();
     }
@@ -50,13 +53,21 @@ void MqttClientPrivate::connectToHost(const QString &hostName, quint16 port, boo
         socket->abort();
         socket->deleteLater();
     }
-    socket = new QTcpSocket(this);
+    socket = new QSslSocket(this);
+    socket->setSslConfiguration(sslConfiguration);
     connect(socket, &QTcpSocket::connected, this, &MqttClientPrivate::onConnected);
     connect(socket, &QTcpSocket::disconnected, this, &MqttClientPrivate::onDisconnected);
     connect(socket, &QTcpSocket::readyRead, this, &MqttClientPrivate::onReadyRead);
     connect(socket, &QTcpSocket::stateChanged, this, &MqttClientPrivate::onSocketStateChanged);
-//    connect(d_ptr->socket, &QTcpSocket::error, this, &MqttClient::error);
-    socket->connectToHost(hostName, port);
+    typedef void (QSslSocket:: *sslErrorsSignal)(const QList<QSslError> &);
+    connect(socket, static_cast<sslErrorsSignal>(&QSslSocket::sslErrors), this, &MqttClientPrivate::onSslErrors);
+    typedef void (QSslSocket:: *errorSignal)(QAbstractSocket::SocketError);
+    connect(socket, static_cast<errorSignal>(&QSslSocket::error), this, &MqttClientPrivate::onSocketError);
+    if (useSsl) {
+        socket->connectToHostEncrypted(hostName, port);
+    } else {
+        socket->connectToHost(hostName, port);
+    }
 }
 
 void MqttClientPrivate::disconnectFromHost()
@@ -90,10 +101,6 @@ MqttClient::MqttClient(const QString &clientId, quint16 keepAlive, const QString
     d_ptr->willMessage = willMessage;
     d_ptr->willQoS = willQoS;
     d_ptr->willRetain = willRetain;
-
-    if (keepAlive > 0) {
-        connect(&d_ptr->keepAliveTimer, &QTimer::timeout, d_ptr, &MqttClientPrivate::sendPingreq);
-    }
 }
 
 bool MqttClient::autoReconnect() const
@@ -181,9 +188,9 @@ void MqttClient::setPassword(const QString &password)
     d_ptr->password = password;
 }
 
-void MqttClient::connectToHost(const QString &hostName, quint16 port, bool cleanSession)
+void MqttClient::connectToHost(const QString &hostName, quint16 port, bool cleanSession, bool useSsl, const QSslConfiguration &sslConfiguration)
 {
-    d_ptr->connectToHost(hostName, port, cleanSession);
+    d_ptr->connectToHost(hostName, port, cleanSession, useSsl, sslConfiguration);
 }
 
 void MqttClient::disconnectFromHost()
@@ -247,8 +254,8 @@ quint16 MqttClient::publish(const QString &topic, const QByteArray &payload, Mqt
     packet.setPayload(payload);
     d_ptr->socket->write(packet.serialize());
     if (qos == Mqtt::QoS0) {
-        QTimer::singleShot(0, this, [this, packetId](){
-            emit published(packetId);
+        QTimer::singleShot(0, this, [this, packet](){
+            emit published(packet.packetId(), packet.topic());
         });
     } else {
         d_ptr->unackedPackets.insert(packet.packetId(), packet);
@@ -279,7 +286,7 @@ void MqttClientPrivate::onDisconnected()
     emit q_ptr->disconnected();
     if (sessionActive && autoReconnect) {
         reconnectAttempt = qMin(maxReconnectTimeout / 60 / 60, reconnectAttempt * 2);
-        qCDebug(dbgClient) << "Reconnecint in" << reconnectAttempt << "seconds";
+        qCDebug(dbgClient) << "Reconnecing in" << reconnectAttempt << "seconds";
         reconnectTimer.setInterval(reconnectAttempt * 1000);
         reconnectTimer.start();
     }
@@ -289,7 +296,7 @@ void MqttClientPrivate::onReadyRead()
 {
     static QByteArray data;
     data.append(socket->readAll());
-//    qCDebug(dbgClient) << "Received data from server:" << data.toHex();
+//    qCDebug(dbgClient) << "Received data from server:" << data.toHex() << "\n" << data;
     MqttPacket packet;
     int ret = packet.parse(data);
     if (ret == -1) {
@@ -356,16 +363,19 @@ void MqttClientPrivate::onReadyRead()
         }
         }
         break;
-    case MqttPacket::TypePuback:
-        unackedPackets.remove(packet.packetId());
+    case MqttPacket::TypePuback: {
+        MqttPacket publishPacket = unackedPackets.take(packet.packetId());
         unackedPacketList.removeAll(packet.packetId());
-        emit q_ptr->published(packet.packetId());
+        emit q_ptr->published(packet.packetId(), publishPacket.topic());
         restartKeepAliveTimer();
         break;
+    }
     case MqttPacket::TypePubrec: {
+        MqttPacket publishPacket = unackedPackets.value(packet.packetId());
         MqttPacket response(MqttPacket::TypePubrel, packet.packetId());
         unackedPackets[packet.packetId()] = response;
         socket->write(response.serialize());
+        emit q_ptr->published(packet.packetId(), publishPacket.topic());
         restartKeepAliveTimer();
         break;
     }
@@ -379,15 +389,28 @@ void MqttClientPrivate::onReadyRead()
     case MqttPacket::TypePubcomp:
         unackedPackets.remove(packet.packetId());
         unackedPacketList.removeAll(packet.packetId());
-        emit q_ptr->published(packet.packetId());
         restartKeepAliveTimer();
         break;
-    case MqttPacket::TypeSuback:
-        unackedPackets.remove(packet.packetId());
+    case MqttPacket::TypeSuback: {
+        MqttPacket subscribePacket = unackedPackets.take(packet.packetId());
         unackedPacketList.removeAll(packet.packetId());
-        emit q_ptr->subscribed(packet.packetId(), packet.subscribeReturnCodes());
+
+        if (subscribePacket.subscriptions().count() != packet.subscribeReturnCodes().count()) {
+            qCWarning(dbgClient) << "Subscription return code count not matching subscribe packet!";
+            socket->abort();
+            return;
+        }
+
+        // Ack the subscription packet
+        emit q_ptr->subscribeResult(packet.packetId(), packet.subscribeReturnCodes());
+
+        // emit subscribed for each topic
+        for (int i = 0; i < packet.subscribeReturnCodes().count(); i++) {
+            emit q_ptr->subscribed(subscribePacket.subscriptions().at(i).topicFilter(), packet.subscribeReturnCodes().at(i));
+        }
         restartKeepAliveTimer();
         break;
+    }
     case MqttPacket::TypeUnsuback:
         if (!unackedPackets.contains(packet.packetId())) {
             qCWarning(dbgClient) << "UNSUBACK received but not waiting for it. Dropping connection. Packet ID:" << packet.packetId();
@@ -414,6 +437,17 @@ void MqttClientPrivate::onReadyRead()
 void MqttClientPrivate::onSocketStateChanged(QAbstractSocket::SocketState socketState)
 {
     emit q_ptr->stateChanged(socketState);
+}
+
+void MqttClientPrivate::onSocketError(QAbstractSocket::SocketError error)
+{
+    qCWarning(dbgClient) << "MQTT socket error:" << error;
+    emit q_ptr->error(error);
+}
+
+void MqttClientPrivate::onSslErrors(const QList<QSslError> &errors)
+{
+    qCWarning(dbgClient) << "SSL error in MQTT connection:" << errors;
 }
 
 quint16 MqttClientPrivate::newPacketId()
@@ -443,5 +477,5 @@ void MqttClientPrivate::reconnectTimerTimeout()
     if (!autoReconnect) {
         return;
     }
-    connectToHost(serverHostname, serverPort, false);
+    connectToHost(serverHostname, serverPort, false, useSsl, sslConfiguration);
 }
