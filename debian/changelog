@@ -1,5 +1,11 @@
-nymea-mqtt (0.1.0) UNRELEASED; urgency=medium
+nymea-mqtt (0.1.1) UNRELEASED; urgency=medium
+
+  * Bugfix release
+
+ -- Michael Zanetti <michael.zanetti@guh.io>  Fri, 12 Apr 2019 21:55:35 +0200
+
+nymea-mqtt (0.1.0) bionic; urgency=medium
 
   * Initial release. 
 
- -- Michael Zanetti <michael.zanetti@guh.io>  Tue, 13 Nov 2018 01:04:13 +0100
+ -- Michael Zanetti <michael.zanetti@guh.io>  Fri, 12 Apr 2019 21:55:31 +0200
