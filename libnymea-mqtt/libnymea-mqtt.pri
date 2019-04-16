@@ -1,19 +1,17 @@
-TARGET = nymea-mqtt
+# Include this file in your project if you want to 
+# statically link to libnymea-mqtt
 
 QT -= gui
 QT += network
 
-CONFIG += c++11 console static shared
+CONFIG += c++11 console static
 CONFIG -= app_bundle
-
-target.path = /usr/lib/$$system('dpkg-architecture -q DEB_HOST_MULTIARCH')
-INSTALLS += target
 
 SOURCES += \
     mqttserver.cpp \
     mqttpacket.cpp \
     mqttsubscription.cpp \
-    $$PWD/mqttclient.cpp
+    mqttclient.cpp
 
 PRIVATE_HEADERS = \
     mqttpacket_p.h \
