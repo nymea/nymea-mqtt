@@ -9,8 +9,8 @@ CONFIG -= static
 CONFIG += shared
 
 # install lib
-target.path = /usr/lib
-INSTALLS += target 
+target.path = $$[QT_INSTALL_LIBS]
+INSTALLS += target
 
 # install headers
 pubheaders.files += $$PUBLIC_HEADERS

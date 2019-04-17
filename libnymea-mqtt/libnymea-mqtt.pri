@@ -25,4 +25,4 @@ PUBLIC_HEADERS = \
     mqttsubscription.h \
     mqttclient.h \
 
-HEADERS += $$PRIVATE_HEADERS + $$PUBLIC_HEADERS
+HEADERS += $$PRIVATE_HEADERS $$PUBLIC_HEADERS
