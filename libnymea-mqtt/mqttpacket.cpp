@@ -25,6 +25,15 @@
 *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+/*!
+       \class MqttPacket
+       \brief Defines a MQTT packet and serialzes/deserializes to/from network payload.
+
+       MqttPacket is used to create MQTT packets to be sent over the network or parse packet
+       payload incoming from the network.
+       The supported MQTT protocol version is 3.1.1.
+*/
+
 #include "mqttpacket.h"
 #include "mqttpacket_p.h"
 
