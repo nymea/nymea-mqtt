@@ -1,8 +1,11 @@
-nymea-mqtt (0.1.1) UNRELEASED; urgency=medium
+nymea-mqtt (0.1.1) xenial; urgency=medium
 
+  [ Michael Zanetti ]
   * Bugfix release
+  * Fix installing headers, unused dependencies and provide pkg-config
+    file
 
- -- Michael Zanetti <michael.zanetti@guh.io>  Fri, 12 Apr 2019 21:55:35 +0200
+ -- Jenkins <jenkins@nymea.io>  Thu, 08 Aug 2019 18:30:37 +0200
 
 nymea-mqtt (0.1.0) bionic; urgency=medium
 
