@@ -4,6 +4,7 @@ TARGET = nymea-mqttserver
 include(../nymea-mqtt.pri)
 
 QT += network
+QT -= gui
 
 INCLUDEPATH += $$top_srcdir/libnymea-mqtt/
 
