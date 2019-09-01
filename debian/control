@@ -4,6 +4,7 @@ Priority: optional
 Maintainer: Michael Zanetti <michael.zanetti@guh.io>
 Build-Depends:
  qtbase5-dev,
+ qttools5-dev-tools,
 Standards-Version: 4.0.0
 Homepage: http://nymea.io
 
