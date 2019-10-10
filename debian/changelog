@@ -1,3 +1,10 @@
+nymea-mqtt (0.1.2) xenial; urgency=medium
+
+  [ Michael Zanetti ]
+  * Fix a crash in topic matching.
+
+ -- Jenkins <jenkins@nymea.io>  Thu, 10 Oct 2019 22:55:36 +0200
+
 nymea-mqtt (0.1.1) xenial; urgency=medium
 
   [ Michael Zanetti ]
