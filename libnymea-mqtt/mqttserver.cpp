@@ -628,6 +628,9 @@ bool MqttServerPrivate::matchTopic(const QString &topicFilter, const QString &to
         if (filterParts.at(i) == QStringLiteral("#")) {
             continue;
         }
+        if (topicParts.length() <= i) {
+            return false;
+        }
         if (topicParts.at(i) == filterParts.at(i)) {
             continue;
         }

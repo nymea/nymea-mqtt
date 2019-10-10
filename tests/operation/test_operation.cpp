@@ -489,6 +489,7 @@ void OperationTests::testSubscriptionTopicMatching_data()
     rows.append({ "a//+/", "a///", "1" });
     rows.append({ "a//+/#", "a//b/c", "1" });
     rows.append({ "a//+/#", "a/b/c/d", "0" });
+    rows.append({ "a/b/c", "a/b", "0"});
 
     rows.append({ "$SYS/", "$SYS/", "0" });
     rows.append({ "#", "$SYS/", "0" });
