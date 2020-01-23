@@ -1,3 +1,11 @@
+nymea-mqtt (0.1.4) xenial; urgency=medium
+
+  [ Michael Zanetti ]
+  * Fix build dependencies
+  * Update copyright
+
+ -- Jenkins <jenkins@nymea.io>  Thu, 23 Jan 2020 13:40:05 +0100
+
 nymea-mqtt (0.1.3) xenial; urgency=medium
 
   [ Michael Zanetti ]
