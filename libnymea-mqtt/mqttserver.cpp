@@ -105,7 +105,7 @@ void MqttServer::setAuthorizer(MqttAuthorizer *authorizer)
 
 int MqttServer::listen(const QHostAddress &address, quint16 port, const QSslConfiguration &sslConfiguration)
 {
-    SslServer *server = new SslServer(sslConfiguration);
+    SslServer *server = new SslServer(sslConfiguration, this);
     connect(server, &SslServer::clientConnected, d_ptr, &MqttServerPrivate::onClientConnected);
     connect(server, &SslServer::clientDisconnected, d_ptr, &MqttServerPrivate::onClientDisconnected);
     connect(server, &SslServer::dataAvailable, d_ptr, &MqttServerPrivate::onDataAvailable);
