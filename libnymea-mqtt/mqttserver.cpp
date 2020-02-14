@@ -280,8 +280,8 @@ void MqttServerPrivate::processPacket(const MqttPacket &packet, QTcpSocket *clie
 
         MqttPacket response(MqttPacket::TypeConnack, packet.packetId());
 
-        if (packet.protocolLevel() != Mqtt::Protocol311) {
-            qCWarning(dbgServer) << "This MQTT broker only supports Protocol version 3.1.1";
+        if (packet.protocolLevel() != Mqtt::Protocol310 && packet.protocolLevel() != Mqtt::Protocol311) {
+            qCWarning(dbgServer) << "This MQTT broker only supports Protocol version 3.1.0 and 3.1.1 but client is" << packet.protocolLevel();
             response.setConnectReturnCode(Mqtt::ConnectReturnCodeUnacceptableProtocolVersion);
             client->write(response.serialize());
             cleanupClient(client);
