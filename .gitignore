@@ -1,2 +1,3 @@
 *.user
 .crossbuilder
+docs/nymea-mqtt-raw/

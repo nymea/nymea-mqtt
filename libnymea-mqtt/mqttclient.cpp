@@ -28,6 +28,8 @@
 /*!
        \class MqttClient
        \brief A MQTT client
+       \inmodule nymea-mqtt
+       \ingroup mqtt
 
        MqttClient is used to connect to MQTT servers/brokers. The currently supported
        MQTT protocol version is 3.1.1 including SSL encryption support.
