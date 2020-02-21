@@ -28,6 +28,8 @@
 /*!
        \class MqttServer
        \brief A MQTT server implementation
+       \inmodule nymea-mqtt
+       \ingroup mqtt
 
        MqttServer is used to expose a MQTT server interface in the network. The currently supported
        MQTT protocol version is 3.1.1 including SSL encryption support.
@@ -47,6 +49,8 @@
 /*!
        \class MqttAuthorizer
        \brief Authorizer base class for authorizing incoming client connections on an \l MqttServer
+       \inmodule nymea-mqtt
+       \ingroup mqtt
 
        MqttAuthorizer is the base class for authorization handlers in \l MqttServer interfaces.
        The \l MqttServer will call the authorizer methods on any incoming connect, publish or subscribe

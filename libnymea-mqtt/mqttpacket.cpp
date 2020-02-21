@@ -28,6 +28,8 @@
 /*!
        \class MqttPacket
        \brief Defines a MQTT packet and serialzes/deserializes to/from network payload.
+       \inmodule nymea-mqtt
+       \ingroup mqtt
 
        MqttPacket is used to create MQTT packets to be sent over the network or parse packet
        payload incoming from the network.

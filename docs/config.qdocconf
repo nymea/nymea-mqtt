@@ -8,7 +8,7 @@ dita.metadata.default.copyryear = 2020
 dita.metadata.default.copyrholder = Michael Zanetti
 dita.metadata.default.audience = programmer
 
-outputdir = nymea-mqtt-raw
+outputdir = nymea-mqtt-html
 outputformats = HTML
 
 language = Cpp
