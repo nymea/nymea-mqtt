@@ -34,6 +34,7 @@ namespace Mqtt {
 
 enum Protocol {
     ProtocolUnknown = 0x00,
+    Protocol310 = 0x03,
     Protocol311 = 0x04
 };
 
