@@ -1,0 +1,33 @@
+project = nymea-mqtt
+description = nymea-mqtt documentation
+
+dita.metadata.default.author      = Michael Zanetti
+dita.metadata.default.permissions = all
+dita.metadata.default.publisher   = nymea GmbH
+dita.metadata.default.copyryear = 2020
+dita.metadata.default.copyrholder = Michael Zanetti
+dita.metadata.default.audience = programmer
+
+outputdir = nymea-mqtt-html
+outputformats = HTML
+
+language = Cpp
+
+naturallanguage         = en_US
+outputencoding          = UTF-8
+sourceencoding          = UTF-8
+
+#syntaxhighlighting = true
+
+headerdirs = ../libnymea-mqtt
+sourcedirs = ./ ../libnymea-mqtt
+
+headers.fileextensions = "*.h"
+sources.fileextensions = "*.cpp *.qdoc"
+
+Cpp.ignoredirectives = Q_DECLARE_METATYPE \
+                       Q_LOGGING_CATEGORY \
+                       Q_DECLARE_LOGGING_CATEGORY \
+                       Q_ENUM \
+
+

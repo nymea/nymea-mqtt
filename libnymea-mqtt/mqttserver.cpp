@@ -25,6 +25,40 @@
 *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+/*!
+       \class MqttServer
+       \brief A MQTT server implementation
+       \inmodule nymea-mqtt
+       \ingroup mqtt
+
+       MqttServer is used to expose a MQTT server interface in the network. The currently supported
+       MQTT protocol version is 3.1.1 including SSL encryption support.
+       Note: Just starting up such a MqttServer does not provide a full MQTT broker. A MqttServer
+       listens on the network for incoming connections, accepts them and parses the network payload into a
+       MqttPacket.
+
+       A MQTT broker implementation, in addition requires to handle permissions and dispatch MQTT messages
+       between multiple MqttServer interfaces as well as handle will messages across clients.
+
+       When implementing a MQTT broker, reimplement MqttAutorizer. Then instantiate one or many MqttServer objects
+       (depending on the network interfaces to be exposed). Using \l setAutorizer, the custom autorizer is
+       registered at the server and the server will ask back to the autorizer for any incoming connection to
+       be authorized.
+*/
+
+/*!
+       \class MqttAuthorizer
+       \brief Authorizer base class for authorizing incoming client connections on an \l MqttServer
+       \inmodule nymea-mqtt
+       \ingroup mqtt
+
+       MqttAuthorizer is the base class for authorization handlers in \l MqttServer interfaces.
+       The \l MqttServer will call the authorizer methods on any incoming connect, publish or subscribe
+       packets. This can be used to check any user/policy database and authorize/reject such requests
+       for particular clients.
+*/
+
+
 #include "mqttserver.h"
 #include "mqttserver_p.h"
 #include "mqttpacket.h"

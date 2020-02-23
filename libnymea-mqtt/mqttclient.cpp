@@ -25,6 +25,15 @@
 *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+/*!
+       \class MqttClient
+       \brief A MQTT client
+       \inmodule nymea-mqtt
+       \ingroup mqtt
+
+       MqttClient is used to connect to MQTT servers/brokers. The currently supported
+       MQTT protocol version is 3.1.1 including SSL encryption support.
+*/
 #include "mqttclient.h"
 #include "mqttclient_p.h"
 #include "mqttpacket.h"
@@ -89,6 +98,13 @@ void MqttClientPrivate::disconnectFromHost()
     socket->disconnectFromHost();
 }
 
+/*!
+ * \brief Constructs a new MQTT client object.
+ * \param clientId The client ID.
+ * \param parent A QObject parent for this MqttClient.
+ *
+ * The clientId is usually obtained with the credentials for a server.
+ */
 MqttClient::MqttClient(const QString &clientId, QObject *parent):
     QObject(parent),
     d_ptr(new MqttClientPrivate(this))
@@ -97,6 +113,19 @@ MqttClient::MqttClient(const QString &clientId, QObject *parent):
 
 }
 
+/*!
+ * \brief Constructs a new MQTT client object.
+ * \param clientId The client ID.
+ * \param keepAlive The keep alive timeout in seconds
+ * \param willTopic The will topic for this connection
+ * \param willMessage The will message payload for this connection
+ * \param willQoS The QoS used to send the will for this message
+ * \param willRetain Determines whether the will message should be retained on the server
+ * \param parent A QObject parent for this MqttClient.
+ *
+ * The clientId is usually obtained with the credentials for a server. Please refer to the MQTT documentation
+ * for information about how the will message in MQTT works.
+ */
 MqttClient::MqttClient(const QString &clientId, quint16 keepAlive, const QString &willTopic, const QByteArray &willMessage, Mqtt::QoS willQoS, bool willRetain, QObject *parent):
     QObject(parent),
     d_ptr(new MqttClientPrivate(this))

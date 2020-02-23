@@ -25,6 +25,15 @@
 *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+/*!
+       \class MqttSubscription
+       \brief A helper class for managing MQTT subscription filters
+       \inmodule nymea-mqtt
+       \ingroup mqtt
+
+       Bundles topic filter and QoS type into a single data type.
+*/
+
 #include "mqttsubscription.h"
 
 MqttSubscription::MqttSubscription()
