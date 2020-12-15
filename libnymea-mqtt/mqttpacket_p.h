@@ -37,15 +37,21 @@
 #include "mqttpacket.h"
 #include "mqttsubscription.h"
 
+#include <QSharedData>
+
 Q_DECLARE_LOGGING_CATEGORY(dbgProto)
 
-class MqttPacketPrivate
+class MqttPacketPrivate: public QSharedData
 {
 public:
-    MqttPacketPrivate(MqttPacket *q) : q_ptr(q) { }
-    MqttPacket *q_ptr;
+    MqttPacketPrivate(){ }
+    MqttPacketPrivate(const MqttPacketPrivate &other);
 
     bool verifyHeaderFlags();
+    MqttPacket::Type type() const;
+    bool dup() const;
+    Mqtt::QoS qos() const;
+    bool retain() const;
 
     quint8 header = 0;
     QByteArray protocolName = "MQTT";
