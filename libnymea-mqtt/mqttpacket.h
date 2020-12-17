@@ -32,6 +32,7 @@
 #include <QByteArray>
 #include <QList>
 #include <QLoggingCategory>
+#include <QSharedDataPointer>
 
 #include "mqtt.h"
 #include "mqttsubscription.h"
@@ -60,9 +61,10 @@ public:
     };
 
     MqttPacket();
+    MqttPacket(const MqttPacket &other);
     MqttPacket(Type type, quint16 packetId = 0, Mqtt::QoS qos = Mqtt::QoS0, bool retain = false, bool dup = false);
+    ~MqttPacket();
 
-public:
     Type type() const;
     bool dup() const;
     void setDup(bool dup);
@@ -129,9 +131,10 @@ public:
     QByteArray serialize() const;
 
     bool operator==(const MqttPacket &other) const;
+    MqttPacket &operator=(const MqttPacket &other);
 
 private:
-    MqttPacketPrivate *d_ptr = nullptr;
+    QSharedDataPointer<MqttPacketPrivate> d_ptr;
 };
 
 typedef QList<MqttPacket> MqttPackets;
