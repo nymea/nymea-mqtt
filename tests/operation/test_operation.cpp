@@ -184,7 +184,16 @@ void OperationTests::connectAndDisconnect()
     QSignalSpy serverSpy(m_server, &MqttServer::clientConnected);
 
     QString clientId = "connectAndDisconnect-client";
-    MqttClient* client = connectAndWait(clientId);
+    QPair<MqttClient*, QSignalSpy*> result = connectToServer(clientId);
+    MqttClient* client = result.first;
+    connect(client, &MqttClient::connected, this, [client](Mqtt::ConnectReturnCode connectReturnCode, Mqtt::ConnackFlags connackFlags){
+        QVERIFY2(client->isConnected(), "MqttClient::isConnected not returning true in connected signal()");
+        QCOMPARE(connectReturnCode, Mqtt::ConnectReturnCodeAccepted);
+        QCOMPARE(connackFlags, Mqtt::ConnackFlagNone);
+    });
+    if (result.second->count() == 0) {
+        result.second->wait();
+    }
 
     QVERIFY2(serverSpy.count() == 1, "Server didn't emit clientConnected");
     QVERIFY2(serverSpy.at(0).at(1) == clientId, "ClientId not matching on server side.");
