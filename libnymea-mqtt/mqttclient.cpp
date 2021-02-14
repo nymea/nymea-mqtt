@@ -364,9 +364,9 @@ void MqttClientPrivate::onReadyRead()
             }
             socket->write(retryPacket.serialize());
         }
+        restartKeepAliveTimer();
         // Make sure we emit connected after having handled all the retransmission queue
         emit q_ptr->connected(packet.connectReturnCode(), packet.connackFlags());
-        restartKeepAliveTimer();
         break;
     case MqttPacket::TypePublish:
         qCDebug(dbgClient) << "Publish received from server. Topic:" << packet.topic() << "Payload:" << packet.payload() << "QoS:" << packet.qos();

@@ -82,6 +82,8 @@ private slots:
 
     void testEmptyClientId();
 
+    void testBinaryPaylaod();
+
 private:
     // Connects and waits for the MQTT CONNECT to be finished
     MqttClient *connectAndWait(const QString &clientId, bool cleanSession = true, quint16 keepAlive = 300, const QString &willTopic = QString(), const QString &willMessage = QString(), Mqtt::QoS willQoS = Mqtt::QoS0, bool willRetain = false);
@@ -182,7 +184,16 @@ void OperationTests::connectAndDisconnect()
     QSignalSpy serverSpy(m_server, &MqttServer::clientConnected);
 
     QString clientId = "connectAndDisconnect-client";
-    MqttClient* client = connectAndWait(clientId);
+    QPair<MqttClient*, QSignalSpy*> result = connectToServer(clientId);
+    MqttClient* client = result.first;
+    connect(client, &MqttClient::connected, this, [client](Mqtt::ConnectReturnCode connectReturnCode, Mqtt::ConnackFlags connackFlags){
+        QVERIFY2(client->isConnected(), "MqttClient::isConnected not returning true in connected signal()");
+        QCOMPARE(connectReturnCode, Mqtt::ConnectReturnCodeAccepted);
+        QCOMPARE(connackFlags, Mqtt::ConnackFlagNone);
+    });
+    if (result.second->count() == 0) {
+        result.second->wait();
+    }
 
     QVERIFY2(serverSpy.count() == 1, "Server didn't emit clientConnected");
     QVERIFY2(serverSpy.at(0).at(1) == clientId, "ClientId not matching on server side.");
@@ -818,6 +829,19 @@ void OperationTests::testEmptyClientId()
     QTRY_VERIFY2(client3.second->count() == 1, "Client did not emit connected signal");
     QTRY_COMPARE(client3.second->first().at(0).value<Mqtt::ConnectReturnCode>(), Mqtt::ConnectReturnCodeIdentifierRejected);
     QTRY_VERIFY2(client3.first->isConnected() == false, "Connection should have been dropped");
+}
+
+void OperationTests::testBinaryPaylaod()
+{
+    MqttClient *client = connectAndWait("");
+    QVERIFY2(client->isConnected(), "Client did not connect");
+    client->subscribe("#");
+    const char binData[] = {'\xA5', '\x20', '\x00', '\x04', '\x00', '\x52'};
+    QByteArray payload(QByteArray::fromRawData(binData, 6));
+    QSignalSpy publishReceivedSpy(client, &MqttClient::publishReceived);
+    client->publish("testtopic", payload);
+    QTRY_VERIFY2(publishReceivedSpy.count() == 1, "Did not receive publish message");
+    QCOMPARE(publishReceivedSpy.first().at(1).toByteArray(), payload);
 }
 
 #endif

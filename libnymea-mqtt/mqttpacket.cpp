@@ -522,8 +522,9 @@ int MqttPacket::parse(const QByteArray &buffer)
         }
 
         memset(str, 0, MAX_STRLEN);
-        inputStream.readRawData(str, qMin(MAX_STRLEN, remainingLength));
-        d_ptr->payload = QByteArray(str);
+        qint16 payloadLen = qMin(MAX_STRLEN, remainingLength);
+        inputStream.readRawData(str, payloadLen);
+        d_ptr->payload = QByteArray(str, payloadLen);
         break;
     }
     case TypePuback:
