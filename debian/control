@@ -10,6 +10,7 @@ Homepage: http://nymea.io
 
 Package: libnymea-mqtt
 Architecture: any
+Multi-Arch: same
 Depends:
  ${misc:Depends},
  ${shlibs:Depends},
@@ -19,6 +20,7 @@ Description: nymea-mqtt libraries
 Package: libnymea-mqtt-dev
 Section: devel
 Architecture: any
+Multi-Arch: same
 Depends:
  libnymea-mqtt (=${binary:Version}),
  ${misc:Depends},
