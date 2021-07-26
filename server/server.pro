@@ -12,5 +12,5 @@ SOURCES += main.cpp
 
 LIBS += -L$$top_builddir/libnymea-mqtt/ -lnymea-mqtt
 
-target.path = /usr/bin/
+target.path = $$[QT_INSTALL_PREFIX]/bin/
 INSTALLS += target
