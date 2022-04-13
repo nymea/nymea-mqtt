@@ -783,6 +783,19 @@ void OperationTests::testRetain()
     QSignalSpy publishReceivedSpy5(client2, &MqttClient::publishReceived);
     client2->subscribe("/retaintopic", Mqtt::QoS1);
     QTRY_VERIFY2(publishReceivedSpy5.count() == 1, "Did not receive exactly 1 retained message.");
+
+    publishReceivedSpy5.clear();
+
+    // post an empty payload to this topic. it should clear all retained messages
+    client1->publish("/retaintopic", "", Mqtt::QoS1, true);
+    QTRY_VERIFY2_WITH_TIMEOUT(publishReceivedSpy5.count() == 0, "Recaived a message but should not have.", 250);
+
+    disconnectAndWait(client2);
+    client2 = connectAndWait("client2");
+    QSignalSpy publishReceivedSpy6(client2, &MqttClient::publishReceived);
+    client2->subscribe("/retaintopic", Mqtt::QoS1);
+    QTRY_VERIFY2_WITH_TIMEOUT(publishReceivedSpy6.count() == 0, "Recaived a message but should not have.", 250);
+
 }
 
 void OperationTests::testUnsubscribe()
