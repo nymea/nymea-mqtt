@@ -68,7 +68,7 @@ public:
     QStringList clients() const;
     void disconnectClient(const QString &clientId);
 
-    // allows publishing from the server, including topcis starting with $
+    // allows publishing from the server, including topics starting with $
     QHash<QString, quint16> publish(const QString &topic, const QByteArray &payload = QByteArray());
 
 signals:
@@ -78,7 +78,7 @@ signals:
     void clientDisconnected(const QString &clientId);
     // emitted whenever a client has been seen, that is, a control message or a keep alive message has been received.
     void clientAlive(const QString &clientId);
-    // emitted whenever a client subscribes, a client can also subscribe to topics starting with $ but those won't be relayed from other clients. Only internal server publishes to $ topcis will be sent to subscribed clients.
+    // emitted whenever a client subscribes, a client can also subscribe to topics starting with $ but those won't be relayed from other clients. Only internal server publishes to $ topics will be sent to subscribed clients.
     void clientSubscribed(const QString &clientId, const QString &topicFilter, Mqtt::QoS requestedQoS);
     // emitted whenever a client unsubscribes from a topic
     void clientUnsubscribed(const QString &clientId, const QString &topicFiltr);
