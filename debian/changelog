@@ -1,3 +1,13 @@
+nymea-mqtt (1.1.0) jammy; urgency=medium
+
+  [ Michael Zanetti ]
+  * Add a unit test for the connected signal
+  * Fix tests
+  * Fix topci -> topic typo
+  * Enable generating a test-results.xml from dpkg builds
+
+ -- jenkins <developer@nymea.io>  Mon, 25 Apr 2022 23:53:32 +0200
+
 nymea-mqtt (1.0.0) xenial; urgency=medium
 
   * 
