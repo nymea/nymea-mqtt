@@ -78,7 +78,7 @@ public:
 
 public slots:
     quint16 subscribe(const MqttSubscription &subscription);
-    quint16 subscribe(const QString &topciFilter, Mqtt::QoS qos = Mqtt::QoS0);
+    quint16 subscribe(const QString &topicFilter, Mqtt::QoS qos = Mqtt::QoS0);
     quint16 subscribe(const MqttSubscriptions &subscriptions);
 
     quint16 unsubscribe(const MqttSubscription &subscription);
