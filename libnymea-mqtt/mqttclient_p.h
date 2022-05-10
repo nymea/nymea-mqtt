@@ -30,12 +30,14 @@
 
 #include <QObject>
 #include <QTcpSocket>
+#include <QWebSocket>
 #include <QTimer>
 #include <QLoggingCategory>
 
 #include "mqttpacket.h"
-#include "mqttclient.h"
 #include "mqttsubscription.h"
+#include "mqttclient.h"
+#include "transports/mqttclienttransport.h"
 
 Q_DECLARE_LOGGING_CATEGORY(dbgClient)
 
@@ -47,12 +49,14 @@ public:
     MqttClient *q_ptr;
 
     void connectToHost(const QString &hostName, quint16 port, bool cleanSession, bool useSsl, const QSslConfiguration &sslConfiguration);
+    void connectToHost(const QNetworkRequest &request, bool cleanSession);
+    void connectToHost(MqttClientTransport *transport, bool cleanSession = true);
     void disconnectFromHost();
 
 public slots:
     void onConnected();
     void onDisconnected();
-    void onReadyRead();
+    void onDataReceived(const QByteArray &data);
     void onSocketStateChanged(QAbstractSocket::SocketState socketState);
     void onSocketError(QAbstractSocket::SocketError error);
     void onSslErrors(const QList<QSslError> &errors);
@@ -64,14 +68,10 @@ public slots:
     void reconnectTimerTimeout();
 
 public:
-    QString serverHostname;
-    quint16 serverPort = 0;
-    bool useSsl = false;
-    QSslConfiguration sslConfiguration;
     bool autoReconnect = true;
     bool sessionActive = false;
     bool cleanSession = true;
-    QSslSocket *socket = nullptr;
+    MqttClientTransport *transport = nullptr;
     QTimer reconnectTimer;
     int reconnectAttempt = 0;
     quint16 maxReconnectTimeout = 36000;
@@ -88,6 +88,8 @@ public:
 
     QVector<quint16> unackedPacketList;
     QHash<quint16, MqttPacket> unackedPackets;
+
+    QByteArray inputBuffer;
 };
 
 #endif // MQTTCLIENT_P_H

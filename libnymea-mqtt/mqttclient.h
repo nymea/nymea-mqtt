@@ -1,6 +1,6 @@
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *
-* Copyright 2013 - 2020, nymea GmbH
+* Copyright 2013 - 2022, nymea GmbH
 * Contact: contact@nymea.io
 *
 * This file is part of nymea.
@@ -31,6 +31,7 @@
 #include <QObject>
 #include <QAbstractSocket>
 #include <QSslConfiguration>
+#include <QNetworkRequest>
 
 #include "mqttpacket.h"
 #include "mqttsubscription.h"
@@ -72,9 +73,12 @@ public:
     void setPassword(const QString &password);
 
     void connectToHost(const QString &hostName, quint16 port, bool cleanSession = true, bool useSsl = false, const QSslConfiguration &sslConfiguration = QSslConfiguration());
+    void connectToHost(const QNetworkRequest &request, bool cleanSession = true);
     void disconnectFromHost();
 
     bool isConnected() const;
+
+    void ignoreSslErrors();
 
 public slots:
     quint16 subscribe(const MqttSubscription &subscription);
@@ -92,6 +96,7 @@ signals:
     void disconnected();
     void stateChanged(QAbstractSocket::SocketState state);
     void error(QAbstractSocket::SocketError socketError);
+    void sslErrors(const QList<QSslError> &sslErrors);
 
     void subscribeResult(quint16 packetId, const Mqtt::SubscribeReturnCodes &subscribeReturnCodes);
     void subscribed(const QString &topic, Mqtt::SubscribeReturnCode subscribeReturnCode);
@@ -101,7 +106,7 @@ signals:
 
 private:
     MqttClientPrivate *d_ptr;
-    friend class OperationTests;
+    friend class MqttTests;
 };
 
 #endif // MQTTCLIENT_H

@@ -25,67 +25,39 @@
 *
 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-#ifndef MQTT_H
-#define MQTT_H
+#include "mqttserver.h"
+#include "mqttclient.h"
+#include "mqttclient_p.h"
 
-#include <QObject>
+#include <QTest>
+#include <QSignalSpy>
 
-namespace Mqtt {
+#include "../common/mqtttests.h"
 
-enum Protocol {
-    ProtocolUnknown = 0x00,
-    Protocol310 = 0x03,
-    Protocol311 = 0x04
-};
+class TcpTests: public MqttTests
+{
+    Q_OBJECT
 
-enum QoS {
-    QoS0 = 0x00,
-    QoS1 = 0x01,
-    QoS2 = 0x02
-};
+private:
+    int startServer(MqttServer *server) override;
+    void connectClientToServer(MqttClient *client, bool cleanSession) override;
 
-enum ConnectFlag {
-    ConnectFlagNone = 0x00,
-    ConnectFlagCleanSession = 0x02,
-    ConnectFlagWill = 0x04,
-    ConnectFlagWillQoS1 = 0x08,
-    ConnectFlagWillQoS2 = 0x10,
-    ConnectFlagWillRetain = 0x20,
-    ConnectFlagPassword = 0x40,
-    ConnectFlagUsername = 0x80
-};
-Q_DECLARE_FLAGS(ConnectFlags, ConnectFlag)
-
-enum ConnackFlag {
-    ConnackFlagNone = 0x0,
-    ConnackFlagSessionPresent = 0x1
-};
-Q_DECLARE_FLAGS(ConnackFlags, ConnackFlag)
-
-enum ConnectReturnCode {
-    ConnectReturnCodeAccepted = 0x00,
-    ConnectReturnCodeUnacceptableProtocolVersion = 0x01,
-    ConnectReturnCodeIdentifierRejected = 0x02,
-    ConnectReturnCodeServerUnavailable = 0x03,
-    ConnectReturnCodeBadUsernameOrPassword = 0x04,
-    ConnectReturnCodeNotAuthorized = 0x05
-};
-
-enum SubscribeReturnCode {
-    SubscribeReturnCodeSuccessQoS0 = 0x00,
-    SubscribeReturnCodeSuccessQoS1 = 0x01,
-    SubscribeReturnCodeSuccessQoS2 = 0x02,
-    SubscribeReturnCodeFailure = 0x80
-};
-typedef QList<SubscribeReturnCode> SubscribeReturnCodes;
+    QString m_serverHost = "127.0.0.1";
+    quint16 m_serverPort = 5555;
 
 };
 
-Q_DECLARE_METATYPE(Mqtt::QoS)
-Q_DECLARE_METATYPE(Mqtt::ConnectFlags)
-Q_DECLARE_METATYPE(Mqtt::ConnackFlags)
-Q_DECLARE_METATYPE(Mqtt::ConnectReturnCode)
-Q_DECLARE_METATYPE(Mqtt::SubscribeReturnCode)
-Q_DECLARE_METATYPE(Mqtt::SubscribeReturnCodes)
+int TcpTests::startServer(MqttServer *server)
+{
+    return server->listen(QHostAddress(m_serverHost), m_serverPort);
+}
 
-#endif // MQTT_H
+void TcpTests::connectClientToServer(MqttClient *client, bool cleanSession)
+{
+    qDebug() << "Connecting to TCP";
+    client->connectToHost(m_serverHost, m_serverPort, cleanSession);
+}
+
+QTEST_MAIN(TcpTests)
+
+#include "test_tcp.moc"
