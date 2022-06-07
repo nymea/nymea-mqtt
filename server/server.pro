@@ -1,5 +1,5 @@
 TEMPLATE = app
-TARGET = nymea-mqttserver
+TARGET = nymea-mqtt-server
 
 include(../nymea-mqtt.pri)
 
@@ -8,9 +8,18 @@ QT -= gui
 
 INCLUDEPATH += $$top_srcdir/libnymea-mqtt/
 
-SOURCES += main.cpp
+HEADERS += \
+    authorizer.h \
+    certificateloader.h \
+    mqttpolicy.h
 
-LIBS += -L$$top_builddir/libnymea-mqtt/ -lnymea-mqtt
+SOURCES += main.cpp \
+    authorizer.cpp \
+    certificateloader.cpp \
+    mqttpolicy.cpp
 
-target.path = /usr/bin/
+LIBS += -L$$top_builddir/libnymea-mqtt/ -lnymea-mqtt -lssl -lcrypto
+
+target.path = $$[QT_INSTALL_PREFIX]/bin
 INSTALLS += target
+

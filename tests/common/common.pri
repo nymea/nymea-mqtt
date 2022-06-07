@@ -1,4 +1,4 @@
-QT += testlib network
+QT += testlib network websockets
 QT -= gui
 
 CONFIG += qt console warn_on depend_includepath testcase
@@ -11,6 +11,8 @@ include(../../nymea-mqtt.pri)
 
 INCLUDEPATH += $$top_srcdir/libnymea-mqtt/
 
-SOURCES += test_operation.cpp
+HEADERS += $${top_srcdir}/tests/common/mqtttests.h
+
+SOURCES += $${top_srcdir}/tests/common/mqtttests.cpp
 
 LIBS += -L$$top_builddir/libnymea-mqtt/ -lnymea-mqtt

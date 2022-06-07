@@ -29,9 +29,8 @@
 #define MQTTSERVER_H
 
 #include <QObject>
-#include <QTcpServer>
-#include <QTcpSocket>
 #include <QTimer>
+#include <QHostAddress>
 #include <QLoggingCategory>
 #include <QSslConfiguration>
 
@@ -60,6 +59,7 @@ public:
     void setAuthorizer(MqttAuthorizer *authorizer);
 
     int listen(const QHostAddress &address = QHostAddress::Any, quint16 port = 1883, const QSslConfiguration &sslConfiguration = QSslConfiguration());
+    int listenWebSocket(const QHostAddress &address = QHostAddress::Any, quint16 port = 80, const QSslConfiguration &sslConfiguration = QSslConfiguration());
     QList<int> listeningAddressIds() const;
     QPair<QHostAddress, quint16> listeningAddress(int addressId);
     void close(int addressId);

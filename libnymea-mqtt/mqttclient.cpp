@@ -1,6 +1,6 @@
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 *
-* Copyright 2013 - 2020, nymea GmbH
+* Copyright 2013 - 2022, nymea GmbH
 * Contact: contact@nymea.io
 *
 * This file is part of nymea.
@@ -31,12 +31,16 @@
        \inmodule nymea-mqtt
        \ingroup mqtt
 
-       MqttClient is used to connect to MQTT servers/brokers. The currently supported
-       MQTT protocol version is 3.1.1 including SSL encryption support.
+       MqttClient is used to connect to MQTT servers/brokers.
+       The currently supported MQTT protocol version is 3.1.1.
+       The currently supported transports are TCP socket and WebSocket with SSL encryption.
 */
 #include "mqttclient.h"
 #include "mqttclient_p.h"
 #include "mqttpacket.h"
+
+#include "transports/mqtttcpclienttransport.h"
+#include "transports/mqttwebsocketclienttransport.h"
 
 Q_LOGGING_CATEGORY(dbgClient, "nymea.mqtt.client")
 
@@ -44,6 +48,7 @@ MqttClientPrivate::MqttClientPrivate(MqttClient *q):
     QObject(q),
     q_ptr(q)
 {
+    qRegisterMetaType<Mqtt::ConnectReturnCode>();
     qRegisterMetaType<Mqtt::SubscribeReturnCodes>();
     qRegisterMetaType<Mqtt::ConnackFlags>();
     reconnectTimer.setSingleShot(true);
@@ -53,49 +58,54 @@ MqttClientPrivate::MqttClientPrivate(MqttClient *q):
 
 void MqttClientPrivate::connectToHost(const QString &hostName, quint16 port, bool cleanSession, bool useSsl, const QSslConfiguration &sslConfiguration)
 {
-    if (serverHostname != hostName || serverPort != port || this->useSsl != useSsl || sslConfiguration != this->sslConfiguration) {
-        serverHostname = hostName;
-        serverPort = port;
-        this->useSsl = useSsl;
-        this->sslConfiguration = sslConfiguration;
+    MqttTcpClientTransport *tcpTransport = new MqttTcpClientTransport(hostName, port, useSsl, sslConfiguration, this);
+    connectToHost(tcpTransport, cleanSession);
+}
+
+void MqttClientPrivate::connectToHost(const QNetworkRequest &request, bool cleanSession)
+{
+    MqttWebSocketClientTransport *webSocketTransport = new MqttWebSocketClientTransport(request, this);
+    connectToHost(webSocketTransport, cleanSession);
+}
+
+void MqttClientPrivate::connectToHost(MqttClientTransport *transport, bool cleanSession)
+{
+    if (this->transport != transport) {
         reconnectAttempt = 1;
         reconnectTimer.stop();
+
+        if (this->transport) {
+            this->transport->abort();
+            this->transport->deleteLater();
+        }
+
+        this->transport = transport;
+
+        connect(transport, &MqttClientTransport::connected, this, &MqttClientPrivate::onConnected);
+        connect(transport, &MqttClientTransport::disconnected, this, &MqttClientPrivate::onDisconnected);
+        connect(transport, &MqttClientTransport::dataReceived, this, &MqttClientPrivate::onDataReceived);
+        connect(transport, &MqttClientTransport::stateChanged, this, &MqttClientPrivate::onSocketStateChanged);
+        connect(transport, &MqttClientTransport::errorSignal, this, &MqttClientPrivate::onSocketError);
+        connect(transport, &MqttClientTransport::sslErrors, this, &MqttClientPrivate::onSslErrors);
     }
+
     this->cleanSession = cleanSession;
 
     sessionActive = true;
 
-    if (socket) {
-        socket->abort();
-        socket->deleteLater();
-    }
-    socket = new QSslSocket(this);
-    socket->setSslConfiguration(sslConfiguration);
-    connect(socket, &QTcpSocket::connected, this, &MqttClientPrivate::onConnected);
-    connect(socket, &QTcpSocket::disconnected, this, &MqttClientPrivate::onDisconnected);
-    connect(socket, &QTcpSocket::readyRead, this, &MqttClientPrivate::onReadyRead);
-    connect(socket, &QTcpSocket::stateChanged, this, &MqttClientPrivate::onSocketStateChanged);
-    typedef void (QSslSocket:: *sslErrorsSignal)(const QList<QSslError> &);
-    connect(socket, static_cast<sslErrorsSignal>(&QSslSocket::sslErrors), this, &MqttClientPrivate::onSslErrors);
-    typedef void (QSslSocket:: *errorSignal)(QAbstractSocket::SocketError);
-    connect(socket, static_cast<errorSignal>(&QSslSocket::error), this, &MqttClientPrivate::onSocketError);
-    if (useSsl) {
-        socket->connectToHostEncrypted(hostName, port);
-    } else {
-        socket->connectToHost(hostName, port);
-    }
+    transport->connectToHost();
 }
 
 void MqttClientPrivate::disconnectFromHost()
 {
     sessionActive = false;
-    if (!socket || !socket->isOpen()) {
+    if (!transport || !transport->isOpen()) {
         return;
     }
     MqttPacket packet(MqttPacket::TypeDisconnect);
-    socket->write(packet.serialize());
-    socket->flush();
-    socket->disconnectFromHost();
+    transport->write(packet.serialize());
+    transport->flush();
+    transport->disconnectFromHost();
 }
 
 /*!
@@ -229,6 +239,11 @@ void MqttClient::connectToHost(const QString &hostName, quint16 port, bool clean
     d_ptr->connectToHost(hostName, port, cleanSession, useSsl, sslConfiguration);
 }
 
+void MqttClient::connectToHost(const QNetworkRequest &request, bool cleanSession)
+{
+    d_ptr->connectToHost(request, cleanSession);
+}
+
 void MqttClient::disconnectFromHost()
 {
     d_ptr->disconnectFromHost();
@@ -236,7 +251,12 @@ void MqttClient::disconnectFromHost()
 
 bool MqttClient::isConnected() const
 {
-    return d_ptr->socket && d_ptr->socket->state() == QAbstractSocket::ConnectedState && d_ptr->keepAliveTimer.isActive();
+    return d_ptr->transport && d_ptr->transport->state() == QAbstractSocket::ConnectedState && d_ptr->keepAliveTimer.isActive();
+}
+
+void MqttClient::ignoreSslErrors()
+{
+    d_ptr->transport->ignoreSslErrors();
 }
 
 quint16 MqttClient::subscribe(const MqttSubscription &subscription)
@@ -257,7 +277,7 @@ quint16 MqttClient::subscribe(const MqttSubscriptions &subscriptions)
     packet.setSubscriptions(subscriptions);
     d_ptr->unackedPackets.insert(packet.packetId(), packet);
     d_ptr->unackedPacketList.append(packet.packetId());
-    d_ptr->socket->write(packet.serialize());
+    d_ptr->transport->write(packet.serialize());
     return packet.packetId();
 }
 
@@ -278,7 +298,7 @@ quint16 MqttClient::unsubscribe(const MqttSubscriptions &subscriptions)
     packet.setSubscriptions(subscriptions);
     d_ptr->unackedPackets.insert(packet.packetId(), packet);
     d_ptr->unackedPacketList.append(packet.packetId());
-    d_ptr->socket->write(packet.serialize());
+    d_ptr->transport->write(packet.serialize());
     return packet.packetId();
 }
 
@@ -288,7 +308,7 @@ quint16 MqttClient::publish(const QString &topic, const QByteArray &payload, Mqt
     MqttPacket packet(MqttPacket::TypePublish, packetId, qos, retain, false);
     packet.setTopic(topic.toUtf8());
     packet.setPayload(payload);
-    d_ptr->socket->write(packet.serialize());
+    d_ptr->transport->write(packet.serialize());
     if (qos == Mqtt::QoS0) {
         QTimer::singleShot(0, this, [this, packet](){
             emit published(packet.packetId(), packet.topic());
@@ -313,7 +333,7 @@ void MqttClientPrivate::onConnected()
     packet.setWillRetain(willRetain);
     packet.setUsername(username.toUtf8());
     packet.setPassword(password.toUtf8());
-    socket->write(packet.serialize());
+    transport->write(packet.serialize());
 }
 
 void MqttClientPrivate::onDisconnected()
@@ -322,30 +342,29 @@ void MqttClientPrivate::onDisconnected()
     emit q_ptr->disconnected();
     if (sessionActive && autoReconnect) {
         reconnectAttempt = qMin(maxReconnectTimeout / 60 / 60, reconnectAttempt * 2);
-        qCDebug(dbgClient) << "Reconnecing in" << reconnectAttempt << "seconds";
+        qCDebug(dbgClient) << "Reconnecting in" << reconnectAttempt << "seconds";
         reconnectTimer.setInterval(reconnectAttempt * 1000);
         reconnectTimer.start();
     }
 }
 
-void MqttClientPrivate::onReadyRead()
+void MqttClientPrivate::onDataReceived(const QByteArray &data)
 {
-    static QByteArray data;
-    data.append(socket->readAll());
+    inputBuffer.append(data);
 //    qCDebug(dbgClient) << "Received data from server:" << data.toHex() << "\n" << data;
     MqttPacket packet;
-    int ret = packet.parse(data);
+    int ret = packet.parse(inputBuffer);
     if (ret == -1) {
         qCDebug(dbgClient) << "Bad data from server. Dropping connection.";
-        data.clear();
-        socket->abort();
+        inputBuffer.clear();
+        transport->abort();
         return;
     }
     if (ret == 0) {
         qCDebug(dbgClient) << "Not enough data from server...";
         return;
     }
-    data.remove(0, ret);
+    inputBuffer.remove(0, ret);
 
     switch (packet.type()) {
     case MqttPacket::TypeConnack:
@@ -353,7 +372,7 @@ void MqttClientPrivate::onReadyRead()
             qCWarning(dbgClient) << "MQTT connection refused:" << packet.connectReturnCode();
             // Always emit connected, even if just to indicate a "ClientRefusedError"
             emit q_ptr->connected(packet.connectReturnCode(), packet.connackFlags());
-            socket->abort();
+            transport->abort();
             emit q_ptr->error(QAbstractSocket::ConnectionRefusedError);
             return;
         }
@@ -362,7 +381,7 @@ void MqttClientPrivate::onReadyRead()
             if (retryPacket.type() == MqttPacket::TypePublish) {
                 retryPacket.setDup(true);
             }
-            socket->write(retryPacket.serialize());
+            transport->write(retryPacket.serialize());
         }
         restartKeepAliveTimer();
         // Make sure we emit connected after having handled all the retransmission queue
@@ -377,13 +396,13 @@ void MqttClientPrivate::onReadyRead()
         case Mqtt::QoS1: {
             emit q_ptr->publishReceived(packet.topic(), packet.payload(), packet.retain());
             MqttPacket response(MqttPacket::TypePuback, packet.packetId());
-            socket->write(response.serialize());
+            transport->write(response.serialize());
             break;
         }
         case Mqtt::QoS2: {
             if (!packet.dup() && unackedPacketList.contains(packet.packetId())) {
                 // Hmm... Server says it's not a duplicate, but packet id is not released yet... Drop connection.
-                socket->disconnectFromHost();
+                transport->disconnectFromHost();
                 return;
             }
 
@@ -394,7 +413,7 @@ void MqttClientPrivate::onReadyRead()
                 unackedPacketList.append(packet.packetId());
                 emit q_ptr->publishReceived(packet.topic(), packet.payload(), packet.retain());
             }
-            socket->write(response.serialize());
+            transport->write(response.serialize());
             break;
         }
         }
@@ -410,7 +429,7 @@ void MqttClientPrivate::onReadyRead()
         MqttPacket publishPacket = unackedPackets.value(packet.packetId());
         MqttPacket response(MqttPacket::TypePubrel, packet.packetId());
         unackedPackets[packet.packetId()] = response;
-        socket->write(response.serialize());
+        transport->write(response.serialize());
         emit q_ptr->published(packet.packetId(), publishPacket.topic());
         restartKeepAliveTimer();
         break;
@@ -418,7 +437,7 @@ void MqttClientPrivate::onReadyRead()
     case MqttPacket::TypePubrel: {
         MqttPacket response(MqttPacket::TypePubcomp, packet.packetId());
         unackedPackets[packet.packetId()] = response;
-        socket->write(response.serialize());
+        transport->write(response.serialize());
         restartKeepAliveTimer();
         break;
     }
@@ -433,7 +452,7 @@ void MqttClientPrivate::onReadyRead()
 
         if (subscribePacket.subscriptions().count() != packet.subscribeReturnCodes().count()) {
             qCWarning(dbgClient) << "Subscription return code count not matching subscribe packet!";
-            socket->abort();
+            transport->abort();
             return;
         }
 
@@ -450,7 +469,7 @@ void MqttClientPrivate::onReadyRead()
     case MqttPacket::TypeUnsuback:
         if (!unackedPackets.contains(packet.packetId())) {
             qCWarning(dbgClient) << "UNSUBACK received but not waiting for it. Dropping connection. Packet ID:" << packet.packetId();
-            socket->abort();
+            transport->abort();
             return;
         }
         unackedPackets.remove(packet.packetId());
@@ -465,8 +484,8 @@ void MqttClientPrivate::onReadyRead()
         Q_ASSERT(false);
     }
 
-    if (!data.isEmpty()) {
-        onReadyRead();
+    if (!inputBuffer.isEmpty()) {
+        onDataReceived(QByteArray());
     }
 }
 
@@ -484,6 +503,7 @@ void MqttClientPrivate::onSocketError(QAbstractSocket::SocketError error)
 void MqttClientPrivate::onSslErrors(const QList<QSslError> &errors)
 {
     qCWarning(dbgClient) << "SSL error in MQTT connection:" << errors;
+    emit q_ptr->sslErrors(errors);
 }
 
 quint16 MqttClientPrivate::newPacketId()
@@ -498,7 +518,7 @@ quint16 MqttClientPrivate::newPacketId()
 void MqttClientPrivate::sendPingreq()
 {
     MqttPacket packet(MqttPacket::TypePingreq);
-    socket->write(packet.serialize());
+    transport->write(packet.serialize());
 }
 
 void MqttClientPrivate::restartKeepAliveTimer()
@@ -510,8 +530,9 @@ void MqttClientPrivate::restartKeepAliveTimer()
 
 void MqttClientPrivate::reconnectTimerTimeout()
 {
+    qCDebug(dbgClient()) << "Reconnecting now...";
     if (!autoReconnect) {
         return;
     }
-    connectToHost(serverHostname, serverPort, false, useSsl, sslConfiguration);
+    connectToHost(transport, false);
 }
