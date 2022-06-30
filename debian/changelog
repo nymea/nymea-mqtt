@@ -1,3 +1,10 @@
+nymea-mqtt (1.3.0) jammy; urgency=medium
+
+  [ Michael Zanetti ]
+  * Improve the warning message when a client is rejected
+
+ -- jenkins <developer@nymea.io>  Thu, 30 Jun 2022 15:04:07 +0200
+
 nymea-mqtt (1.2.0) jammy; urgency=medium
 
   [ Michael Zanetti ]
