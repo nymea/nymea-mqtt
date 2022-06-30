@@ -366,7 +366,7 @@ void MqttServerPrivate::processPacket(const MqttPacket &packet, MqttServerClient
             int serverAddressId = servers.key(transport);
             Mqtt::ConnectReturnCode userValidationReturnCode = authorizer->authorizeConnect(serverAddressId, clientId, username, password, client->peerAddress());
             if (userValidationReturnCode != Mqtt::ConnectReturnCodeAccepted) {
-                qCWarning(dbgServer) << "Rejecting connection due to user validation.";
+                qCWarning(dbgServer).nospace() << "Rejecting connection from " << client->peerAddress().toString() << " due to user validation. (clientId: " << clientId << ", username: " << username << ")";
                 response.setConnectReturnCode(userValidationReturnCode);
                 client->write(response.serialize());
                 cleanupClient(client);
