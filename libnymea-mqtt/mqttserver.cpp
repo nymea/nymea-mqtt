@@ -231,10 +231,9 @@ void MqttServerPrivate::onClientConnected(MqttServerClient *client)
     // Start a 10 second timer to clean up the connection if we don't get data until then.
     QTimer *timeoutTimer = new QTimer(this);
     connect(timeoutTimer, &QTimer::timeout, client, [this, client]() {
-        qCWarning(dbgServer) << "A client connected but did not send data in 10 seconds. Dropping connection.";
-        client->abort();
+        qCWarning(dbgServer) << "A client connected but did not send data in 10 seconds. Dropping connection from" << client->peerAddress();
         pendingConnections.take(client)->deleteLater();
-        client->deleteLater();
+        client->abort();
     });
     timeoutTimer->start(10000);
     clientServerMap.insert(client, transport);
