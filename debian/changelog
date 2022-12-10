@@ -1,3 +1,10 @@
+nymea-mqtt (1.6.0) jammy; urgency=medium
+
+  [ Michael Zanetti ]
+  * Fix a warning and improve debug print when a client times out
+
+ -- jenkins <developer@nymea.io>  Sat, 10 Dec 2022 14:52:27 +0100
+
 nymea-mqtt (1.5.1) jammy; urgency=medium
 
 
