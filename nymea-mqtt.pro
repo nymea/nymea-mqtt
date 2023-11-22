@@ -9,5 +9,3 @@ client.depends = libnymea-mqtt
 } else {
     message("Build without tests")
 }
-
-

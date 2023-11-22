@@ -39,11 +39,16 @@ MqttTcpClientTransport::MqttTcpClientTransport(const QString &hostName, quint16 
     connect(m_socket, &QTcpSocket::connected, this, &MqttClientTransport::connected);
     connect(m_socket, &QTcpSocket::disconnected, this, &MqttClientTransport::disconnected);
     connect(m_socket, &QTcpSocket::stateChanged, this, &MqttClientTransport::stateChanged);
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    connect(m_socket, &QSslSocket::sslErrors, this, &MqttClientTransport::sslErrors);
+    connect(m_socket, &QTcpSocket::errorOccurred, this, &MqttClientTransport::errorSignal);
+#else
     typedef void (QSslSocket:: *sslErrorsSignal)(const QList<QSslError> &);
     connect(m_socket, static_cast<sslErrorsSignal>(&QSslSocket::sslErrors), this, &MqttClientTransport::sslErrors);
     typedef void (QSslSocket:: *errorSignal)(QAbstractSocket::SocketError);
     connect(m_socket, static_cast<errorSignal>(&QSslSocket::error), this, &MqttClientTransport::errorSignal);
-
+#endif
     connect(m_socket, &QTcpSocket::readyRead, this, &MqttTcpClientTransport::onReadyRead);
 }
 
