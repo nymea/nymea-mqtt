@@ -61,7 +61,7 @@ QPair<MqttClient*, QSignalSpy*> MqttTests::connectToServer(const QString &client
 
     connectClientToServer(client, cleanSession);
 
-    return qMakePair<MqttClient*, QSignalSpy*>(client, spy);
+    return QPair<MqttClient*, QSignalSpy*>(client, spy);
 }
 
 void MqttTests::disconnectAndWait(MqttClient* client)
@@ -197,12 +197,12 @@ void MqttTests::subscribeAndPublish()
     quint16 packetId = client1->subscribe("#", qosClient1);
 
     QTRY_VERIFY2(serverSubscribeSpy.count() == 1, "Server did not emit clientSubscribed");
-    QVERIFY2(serverSubscribeSpy.first().first() == clientId1, "Client Id not matching");
-    QVERIFY2(serverSubscribeSpy.first().at(1) == "#", "Topic not matching");
-    QVERIFY2(serverSubscribeSpy.first().at(2) == qosClient1, "QoS not matching");
+    QVERIFY2(serverSubscribeSpy.first().first().toString() == clientId1, "Client Id not matching");
+    QVERIFY2(serverSubscribeSpy.first().at(1).toString() == "#", "Topic not matching");
+    QVERIFY2(serverSubscribeSpy.first().at(2).toInt() == qosClient1, "QoS not matching");
 
     QTRY_VERIFY2(clientSubscribeSpy.count() == 1, "Client did not emit subscribed");
-    QVERIFY2(clientSubscribeSpy.first().first() == packetId, "Packet ID not matching");
+    QVERIFY2(clientSubscribeSpy.first().first().toInt() == packetId, "Packet ID not matching");
     QVERIFY2(clientSubscribeSpy.first().at(1).value<Mqtt::SubscribeReturnCodes>().count() == 1, "Subscribe return code count not matching");
 
     QSignalSpy serverPublishReceivedSpy(m_server, &MqttServer::publishReceived);
@@ -213,20 +213,20 @@ void MqttTests::subscribeAndPublish()
     packetId = client2->publish("/testtopic/", "Hello world", qosClient2);
 
     QTRY_VERIFY2(serverPublishReceivedSpy.count() == 1, "Server did not emit publishReceived");
-    QVERIFY2(serverPublishReceivedSpy.first().at(0) == clientId2, "Server did emit publishReceived signal but client ID is not matching");
-    QVERIFY2(serverPublishReceivedSpy.first().at(1) == packetId, QString("Server did emit publishReceived signal but Packet ID is not matching:\nActual: %1\nExpected: %2").arg(serverPublishReceivedSpy.first().at(1).toInt()).arg(packetId).toUtf8().data());
-    QVERIFY2(serverPublishReceivedSpy.first().at(2) == "/testtopic/", "Server did emit publishReceived signal but topic is not matching");
-    QVERIFY2(serverPublishReceivedSpy.first().at(3) == "Hello world", "Server did emit publishReceived signal but payload is not matching");
+    QVERIFY2(serverPublishReceivedSpy.first().at(0).toString() == clientId2, "Server did emit publishReceived signal but client ID is not matching");
+    QVERIFY2(serverPublishReceivedSpy.first().at(1).toInt() == packetId, QString("Server did emit publishReceived signal but Packet ID is not matching:\nActual: %1\nExpected: %2").arg(serverPublishReceivedSpy.first().at(1).toInt()).arg(packetId).toUtf8().data());
+    QVERIFY2(serverPublishReceivedSpy.first().at(2).toString() == "/testtopic/", "Server did emit publishReceived signal but topic is not matching");
+    QVERIFY2(serverPublishReceivedSpy.first().at(3).toByteArray() == QByteArray("Hello world"), "Server did emit publishReceived signal but payload is not matching");
 
     QTRY_VERIFY2(serverPublishedSpy.count() == 1, "Server did not emit published");
-    QVERIFY2(serverPublishedSpy.first().at(0) == clientId1, "Server did emit published signal but client ID is not matching");
+    QVERIFY2(serverPublishedSpy.first().at(0).toString() == clientId1, "Server did emit published signal but client ID is not matching");
 
     QTRY_VERIFY2(client1PublishReceivedSpy.count() == 1, "Subscribing client did not emit publishReceived signal");
-    QVERIFY2(client1PublishReceivedSpy.first().at(0) == "/testtopic/", "Subscribing client did emit publishReceived signal but topic is not matching");
-    QVERIFY2(client1PublishReceivedSpy.first().at(1) == "Hello world", "Subscribing client did emit publishReceived signal but payload is not matching");
+    QVERIFY2(client1PublishReceivedSpy.first().at(0).toString() == "/testtopic/", "Subscribing client did emit publishReceived signal but topic is not matching");
+    QVERIFY2(client1PublishReceivedSpy.first().at(1).toByteArray() == QByteArray("Hello world"), "Subscribing client did emit publishReceived signal but payload is not matching");
 
     QTRY_VERIFY2(client2PublishedSpy.count() == 1, "Publishing client did not emit published signal");
-    QVERIFY2(client2PublishedSpy.first().first() == packetId, "Publishing client did emit published signal but packet ID not matching");
+    QVERIFY2(client2PublishedSpy.first().first().toInt() == packetId, "Publishing client did emit published signal but packet ID not matching");
 
 }
 
@@ -242,8 +242,8 @@ void MqttTests::willIsSentOnClientDisappearing()
     client2->d_ptr->transport->abort();
 
     QTRY_VERIFY2(publishSpy.count() == 1, "Will has not been sent");
-    QVERIFY2(publishSpy.first().at(0) == "/testtopic", "Will topic not matching");
-    QVERIFY2(publishSpy.first().at(1) == "Bye bye", "Will message not matching");
+    QVERIFY2(publishSpy.first().at(0).toString() == "/testtopic", "Will topic not matching");
+    QVERIFY2(publishSpy.first().at(1).toByteArray() == QByteArray("Bye bye"), "Will message not matching");
 }
 
 void MqttTests::willIsNotSentOnClientDisconnecting()
@@ -278,18 +278,18 @@ void MqttTests::testWillRetain()
     client2->d_ptr->transport->abort();
 
     QTRY_VERIFY2(publishSpy.count() == 1, "Will has not been sent");
-    QVERIFY2(publishSpy.first().at(0) == "/testtopic", QString("Will topic not matching: %1").arg(publishSpy.first().at(0).toString()).toUtf8().data());
-    QVERIFY2(publishSpy.first().at(1) == "Bye bye", "Will message not matching");
-    QVERIFY2(publishSpy.first().at(2) == false, "Retain flag not matching");
+    QVERIFY2(publishSpy.first().at(0).toString() == "/testtopic", QString("Will topic not matching: %1").arg(publishSpy.first().at(0).toString()).toUtf8().data());
+    QVERIFY2(publishSpy.first().at(1).toByteArray() == QByteArray("Bye bye"), "Will message not matching");
+    QVERIFY2(publishSpy.first().at(2).toBool() == false, "Retain flag not matching");
 
     MqttClient *client3 = connectAndWait("subWill-client2");
     QSignalSpy retainedWillSpy(client3, &MqttClient::publishReceived);
 
     client3->subscribe("#");
     QTRY_VERIFY2(retainedWillSpy.count() == 1, "Retained Will has not been sent");
-    QVERIFY2(retainedWillSpy.first().at(0) == "/testtopic", "Will topic not matching");
-    QVERIFY2(retainedWillSpy.first().at(1) == "Bye bye", "Will message not matching");
-    QVERIFY2(retainedWillSpy.first().at(2) == true, "Retain flag not matching");
+    QVERIFY2(retainedWillSpy.first().at(0).toString() == "/testtopic", "Will topic not matching");
+    QVERIFY2(retainedWillSpy.first().at(1).toByteArray() == QByteArray("Bye bye"), "Will message not matching");
+    QVERIFY2(retainedWillSpy.first().at(2).toBool() == true, "Retain flag not matching");
 
     // Clear retain on /testtopic
     QSignalSpy clearRetainSpy(client3, &MqttClient::published);
@@ -331,12 +331,12 @@ void MqttTests::testQoS1Retransmissions()
     QCOMPARE(serverSpy.at(0).at(0).toString(), QString("client1"));
     QCOMPARE(serverSpy.at(0).at(1).toInt(), packetId);
     QCOMPARE(serverSpy.at(0).at(2).toString(), QString("/testtopic"));
-    QCOMPARE(serverSpy.at(0).at(3).toString(), QString("Hello world"));
+    QCOMPARE(serverSpy.at(0).at(3).toByteArray(), QByteArray("Hello world"));
 
     QCOMPARE(serverSpy.at(1).at(0).toString(), QString("client1"));
     QCOMPARE(serverSpy.at(1).at(1).toInt(), packetId);
     QCOMPARE(serverSpy.at(1).at(2).toString(), QString("/testtopic"));
-    QCOMPARE(serverSpy.at(1).at(3).toString(), QString("Hello world"));
+    QCOMPARE(serverSpy.at(1).at(3).toByteArray(), QByteArray("Hello world"));
 }
 
 void MqttTests::testMultiSubscription()
@@ -588,7 +588,7 @@ void MqttTests::testQoS1PublishToClientIsDeliveredOnSessionResume()
     QTRY_VERIFY(publishedSpy.count() == 1);
 
     // Resume (take over) old session and make sure we got the publish
-    MqttClient *newClient1 = connectToServer("client1", false).first;;
+    MqttClient *newClient1 = connectToServer("client1", false).first;
     QSignalSpy publishReceivedSpy(newClient1, &MqttClient::publishReceived);
 
     QTRY_VERIFY2(publishReceivedSpy.count() == 1, "Client did not receive publish packet upon session resume");

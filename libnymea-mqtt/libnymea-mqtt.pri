@@ -3,10 +3,13 @@
 
 TEMPLATE = lib
 TARGET = nymea-mqtt
+
 QT -= gui
 QT += network websockets
 
-CONFIG += c++11 console static
+include(../nymea-mqtt.pri)
+
+CONFIG += console static
 
 SOURCES += \
     mqttpacket.cpp \

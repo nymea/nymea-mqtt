@@ -37,8 +37,13 @@ MqttWebSocketClientTransport::MqttWebSocketClientTransport(const QNetworkRequest
     connect(m_socket, &QWebSocket::disconnected, this, &MqttClientTransport::disconnected);
     connect(m_socket, &QWebSocket::stateChanged, this, &MqttClientTransport::stateChanged);
     connect(m_socket, &QWebSocket::sslErrors, this, &MqttClientTransport::sslErrors);
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    connect(m_socket, &QWebSocket::errorOccurred, this, &MqttClientTransport::errorSignal);
+#else
     typedef void (QWebSocket:: *errorSignal)(QAbstractSocket::SocketError);
     connect(m_socket, static_cast<errorSignal>(&QWebSocket::error), this, &MqttClientTransport::errorSignal);
+#endif
 
     connect(m_socket, &QWebSocket::textMessageReceived, this, &MqttWebSocketClientTransport::onTextMessageReceived);
     connect(m_socket, &QWebSocket::binaryMessageReceived, this, &MqttWebSocketClientTransport::onBinaryMessageReceived);

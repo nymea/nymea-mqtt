@@ -69,7 +69,8 @@
 #include <QDataStream>
 #include <QUuid>
 #include <QtGlobal>
-#include <QRegExp>
+#include <QRegularExpression>
+
 
 Q_LOGGING_CATEGORY(dbgServer, "nymea.mqtt.server")
 
@@ -349,7 +350,12 @@ void MqttServerPrivate::processPacket(const MqttPacket &packet, MqttServerClient
                 cleanupClient(client);
                 return;
             }
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+            clientId = QUuid::createUuid().toString().remove(QRegularExpression("[{}-]*"));
+#else
             clientId = QUuid::createUuid().toString().remove(QRegExp("[{}-]*"));
+#endif
+
         }
 
         if (authorizer) {
@@ -442,7 +448,12 @@ void MqttServerPrivate::processPacket(const MqttPacket &packet, MqttServerClient
                 << ", Will Message: \"" << packet.willMessage() << '\"'
                 << ", Will Retain: " << packet.willRetain()
                 << ", Username: " << packet.username()
-                << ", Password: " << QString(packet.password()).replace(QRegExp("."), "*");
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+            << ", Password: " << QString(packet.password()).replace(QRegularExpression("."), "*");
+#else
+            << ", Password: " << QString(packet.password()).replace(QRegExp("."), "*");
+#endif
+
 
         if (ctx->keepAlive > 0) {
             ctx->keepAliveTimer.start(ctx->keepAlive * 1500);

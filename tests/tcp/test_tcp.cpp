@@ -27,7 +27,6 @@
 
 #include "mqttserver.h"
 #include "mqttclient.h"
-#include "mqttclient_p.h"
 
 #include <QTest>
 #include <QSignalSpy>

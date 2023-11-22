@@ -15,7 +15,3 @@ HEADERS += $${top_srcdir}/tests/common/mqtttests.h
 SOURCES += $${top_srcdir}/tests/common/mqtttests.cpp
 
 LIBS += -L$$top_builddir/libnymea-mqtt/ -lnymea-mqtt
-
-target.path = $$[QT_INSTALL_PREFIX]/bin
-INSTALLS += target
-
