@@ -61,7 +61,7 @@ QPair<MqttClient*, QSignalSpy*> MqttTests::connectToServer(const QString &client
 
     connectClientToServer(client, cleanSession);
 
-    return qMakePair<MqttClient*, QSignalSpy*>(client, spy);
+    return QPair<MqttClient*, QSignalSpy*>(client, spy);
 }
 
 void MqttTests::disconnectAndWait(MqttClient* client)

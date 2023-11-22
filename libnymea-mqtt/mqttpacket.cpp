@@ -629,7 +629,11 @@ int MqttPacket::parse(const QByteArray &buffer)
 QByteArray MqttPacket::serialize() const
 {
     QByteArray ret;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    QDataStream stream(&ret, QDataStream::WriteOnly);
+#else
     QDataStream stream(&ret, QIODevice::WriteOnly);
+#endif
     stream << d_ptr->header;
 
     quint16 remainingLength = 0;
