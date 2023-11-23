@@ -77,7 +77,7 @@ public:
     quint16 maxReconnectTimeout = 36000;
 
     QString clientId;
-    quint16 keepAlive;
+    quint16 keepAlive = 0;
     QTimer keepAliveTimer;
     QString willTopic;
     QByteArray willMessage;

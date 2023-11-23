@@ -48,6 +48,7 @@ int main(int argc, char *argv[]) {
           {{"payload", "l"}, "Publish payload (requires -p).", "payload"},
           {{"retain", "r"}, "Retain flag for publishes (default: no retaining)."},
           {{"qos", "q"}, "QoS (default: 1).", "QoS", "1"},
+          {{"keepalive", "k"}, "Keep alive timeout in seconds (default: 60)", "keepalive", "60"},
           {{"ssl", "S"}, "Use SSL for TCP connections (default: off) (Websocket connections will determine the use of SSL using the url scheme)."},
           {{"accept-self-signed-certificate", "A"}, "Ignore self signed certificate errors"},
           {{"verbose", "v"}, "Be more verbose"}
@@ -73,7 +74,15 @@ int main(int argc, char *argv[]) {
 
     bool retain = parser.isSet("retain");
 
+    int keepAlive = parser.value("keepalive").toInt(&ok);
+    if (!ok || keepAlive < 0 || keepAlive > 65535) {
+        qCritical() << "Invalid keep alive option. Must be a number from 0 to 65535.";
+        exit(EXIT_FAILURE);
+    }
+
     MqttClient client(parser.value("clientid"), app);
+    client.setKeepAlive(keepAlive);
+
     QObject::connect(&client, &MqttClient::error, app, [&client, app](QAbstractSocket::SocketError socketError){
         qCritical() << "Connection error:" << socketError;
         client.setAutoReconnect(false);
