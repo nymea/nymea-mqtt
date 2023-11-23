@@ -1,3 +1,11 @@
+nymea-mqtt (1.9.0) jammy; urgency=medium
+
+  [ Michael Zanetti ]
+  * Fix keepalive timeout being uninitialized in client and allow
+    setting it
+
+ -- jenkins <developer@nymea.io>  Thu, 23 Nov 2023 09:52:15 +0100
+
 nymea-mqtt (1.8.4) jammy; urgency=medium
 
 
