@@ -44,3 +44,11 @@ Depends:
  ${shlibs:Depends},
 Description: nymea-mqtt command line client
  nymeas mqtt implementation. This package contains a command line mqtt client.
+
+Package: nymea-mqtt-tests
+Architecture: any
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: nymea-mqtt tests
+ nymeas mqtt implementation. This package contains the tests for the library.
