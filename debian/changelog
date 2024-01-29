@@ -1,3 +1,10 @@
+nymea-mqtt (1.9.1) jammy; urgency=medium
+
+  [ Simon Stürz ]
+  * Add option to disable tests
+
+ -- jenkins <developer@nymea.io>  Mon, 29 Jan 2024 12:21:55 +0100
+
 nymea-mqtt (1.9.0) jammy; urgency=medium
 
   [ Michael Zanetti ]
