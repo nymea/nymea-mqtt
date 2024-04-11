@@ -1,3 +1,8 @@
+nymea-mqtt (1.9.2) jammy; urgency=medium
+
+
+ -- jenkins <developer@nymea.io>  Thu, 11 Apr 2024 15:45:26 +0200
+
 nymea-mqtt (1.9.1) jammy; urgency=medium
 
   [ Simon Stürz ]
