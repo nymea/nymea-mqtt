@@ -2,12 +2,13 @@ Source: nymea-mqtt
 Section: comm
 Priority: optional
 Maintainer: nymea GmbH <developer@nymea.io>
+Standards-Version: 4.6.0
+Homepage: http://nymea.io
 Build-Depends: debhelper,
                libssl-dev,
                libqt5websockets5-dev,
                qtbase5-dev,
-Standards-Version: 4.0.0
-Homepage: http://nymea.io
+
 
 Package: libnymea-mqtt
 Architecture: any
@@ -17,6 +18,7 @@ Depends:
  ${shlibs:Depends},
 Description: nymea-mqtt library
  nymeas mqtt implementation for mqtt client and server development.
+
 
 Package: libnymea-mqtt-dev
 Section: devel
@@ -29,6 +31,7 @@ Description: nymea-mqtt libaries - development files
  nymeas mqtt implementation for mqtt client and server development.
  This package contains related development files.
 
+
 Package: nymea-mqtt-server
 Architecture: any
 Depends:
@@ -37,6 +40,7 @@ Depends:
 Description: nymea-mqtt standalone server
  nymeas mqtt implementation. This package contains a standalone mqtt server.
 
+
 Package: nymea-mqtt-client
 Architecture: any
 Depends:
@@ -44,6 +48,7 @@ Depends:
  ${shlibs:Depends},
 Description: nymea-mqtt command line client
  nymeas mqtt implementation. This package contains a command line mqtt client.
+
 
 Package: nymea-mqtt-tests
 Architecture: any
