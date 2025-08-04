@@ -1,0 +1,61 @@
+Source: nymea-mqtt
+Section: comm
+Priority: optional
+Maintainer: nymea GmbH <developer@nymea.io>
+Standards-Version: 4.7.2
+Homepage: http://nymea.io
+Build-Depends: debhelper,
+               dpkg-dev,
+               libssl-dev,
+               pkg-config,
+               qt6-base-dev,
+               qt6-base-dev-tools,
+               qt6-websockets-dev
+
+Package: libnymea-mqtt
+Architecture: any
+Multi-Arch: same
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: nymea-mqtt library
+ nymeas mqtt implementation for mqtt client and server development.
+
+
+Package: libnymea-mqtt-dev
+Section: devel
+Architecture: any
+Multi-Arch: same
+Depends:
+ libnymea-mqtt (=${binary:Version}),
+ ${misc:Depends},
+Description: nymea-mqtt libaries - development files
+ nymeas mqtt implementation for mqtt client and server development.
+ This package contains related development files.
+
+
+Package: nymea-mqtt-server
+Architecture: any
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: nymea-mqtt standalone server
+ nymeas mqtt implementation. This package contains a standalone mqtt server.
+
+
+Package: nymea-mqtt-client
+Architecture: any
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: nymea-mqtt command line client
+ nymeas mqtt implementation. This package contains a command line mqtt client.
+
+
+Package: nymea-mqtt-tests
+Architecture: any
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+Description: nymea-mqtt tests
+ nymeas mqtt implementation. This package contains the tests for the library.
