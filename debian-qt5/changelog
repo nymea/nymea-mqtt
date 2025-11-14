@@ -1,3 +1,10 @@
+nymea-mqtt (1.14.0) jammy; urgency=medium
+
+  [ Simon Stürz ]
+  * Update license
+
+ -- jenkins <developer@nymea.io>  Fri, 14 Nov 2025 17:20:43 +0100
+
 nymea-mqtt (1.12.3) jammy; urgency=medium
 
 
