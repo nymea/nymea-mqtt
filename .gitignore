@@ -1,3 +1,4 @@
 *.user
 .crossbuilder
+build/
 docs/nymea-mqtt-html/
