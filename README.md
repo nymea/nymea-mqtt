@@ -15,7 +15,9 @@ The project ships qmake files for Qt 5 and Qt 6. Pick one of the `nymea-mqtt.pro
 Qt environment and run:
 
 ```bash
-qmake
+mkdir build
+cd build
+qmake ..
 make
 ```
 
@@ -26,10 +28,17 @@ Debian metadata in `debian-*`.
 ## License
 
 `libnymea-mqtt` is licensed under the GNU Lesser General Public License version 3 (or, at your option,
-any later version). Each source file carries the following header:
+any later version). Its source files carry:
 
 ```text
 // SPDX-License-Identifier: LGPL-3.0-or-later
+```
+
+The standalone client (`client/`), server (`server/`), and test suite (`tests/`) are GPL-3.0-or-later
+programs and therefore embed the following header instead:
+
+```text
+// SPDX-License-Identifier: GPL-3.0-or-later
 ```
 
 The full text of the GNU LGPL and GNU GPL is included in `LICENSE.LGPL3` and `LICENSE.GPL3`, respectively.
