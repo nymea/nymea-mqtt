@@ -15,7 +15,9 @@ The project ships qmake files for Qt 5 and Qt 6. Pick one of the `nymea-mqtt.pro
 Qt environment and run:
 
 ```bash
-qmake
+mkdir build
+cd build
+qmake ..
 make
 ```
 

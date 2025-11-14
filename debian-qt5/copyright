@@ -1,7 +1,8 @@
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: nymea-mqtt
-Upstream-Contact: nymea GmbH <contact@nymea.io>
+Upstream-Contact: chargebyte austria GmbH <contact@nymea.io>
 Copyright: 2013-2024, nymea GmbH
+           2024-2025, chargebyte austria GmbH
 Download: http://www.github.com/nymea/nymea-mqtt
 Source: https://github.com/nymea/nymea-mqtt.git
 
@@ -15,29 +16,35 @@ License: LGPL-3
 
 Files: *
 License: GPL-3
-Copyright: 2013-2024, nymea GmbH <contact@nymea.io>
+Copyright: 2013-2024, nymea GmbH
+           2024-2025, chargebyte austria GmbH
 
 Files: server/*
 License: GPL-3
-Copyright: 2013-2024, nymea GmbH <contact@nymea.io>
+Copyright: 2013-2024, nymea GmbH
+           2024-2025, chargebyte austria GmbH
 
 Files: client/*
 License: GPL-3
-Copyright: 2013-2024, nymea GmbH <contact@nymea.io>
+Copyright: 2013-2024, nymea GmbH
+           2024-2025, chargebyte austria GmbH
 
 Files: debian/*
 License: GPL-3
-Copyright: 2013-2024, nymea GmbH <contact@nymea.io>
+Copyright: 2013-2024, nymea GmbH
+           2024-2025, chargebyte austria GmbH
 
 Files: docs/*
 License: LGPL-3
-Copyright: 2013-2024, nymea GmbH <contact@nymea.io>
+Copyright: 2013-2024, nymea GmbH
+           2024-2025, chargebyte austria GmbH
 
-Files: libnymea-mqtt//*
+Files: libnymea-mqtt/*
 License: LGPL-3
-Copyright: 2013-2024, nymea GmbH <contact@nymea.io>
+Copyright: 2013-2024, nymea GmbH
+           2024-2025, chargebyte austria GmbH
 
 Files: tests/*
-License: LGPL-3
-Copyright: 2013-2024, nymea GmbH <contact@nymea.io>
-
+License: GPL-3
+Copyright: 2013-2024, nymea GmbH
+           2024-2025, chargebyte austria GmbH
