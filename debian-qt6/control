@@ -1,7 +1,7 @@
 Source: nymea-mqtt
 Section: comm
 Priority: optional
-Maintainer: nymea GmbH <developer@nymea.io>
+Maintainer: chargebyte austria GmbH  <contact@nymea.io>
 Standards-Version: 4.7.2
 Homepage: http://nymea.io
 Build-Depends: debhelper,
