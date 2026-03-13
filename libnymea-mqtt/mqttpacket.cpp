@@ -402,8 +402,8 @@ int MqttPacket::parse(const QByteArray &buffer)
     const quint16 fullRemainingLength = remainingLength;
 
     quint16 strLen;
-    const quint16 MAX_STRLEN = remainingLength;
-    char str[MAX_STRLEN];
+    const int maxStrLen = qMax(1, static_cast<int>(fullRemainingLength));
+    QByteArray str(maxStrLen, '\0');
 
     switch (type()) {
     case TypeConnect: {
@@ -412,10 +412,9 @@ int MqttPacket::parse(const QByteArray &buffer)
         remainingLength -= 2;
 
         ASSERT_LEN(strLen, "CONNECT")
-        memset(str, 0, MAX_STRLEN);
-        inputStream.readRawData(str, qMin(MAX_STRLEN, strLen));
+        inputStream.readRawData(str.data(), qMin(maxStrLen, static_cast<int>(strLen)));
         remainingLength -= strLen;
-        d_ptr->protocolName = QByteArray(str);
+        d_ptr->protocolName = QByteArray(str.constData(), strLen);
 
         ASSERT_LEN(6, "CONNECT")
         quint8 pl;
@@ -433,29 +432,26 @@ int MqttPacket::parse(const QByteArray &buffer)
         remainingLength -= 2;
 
         ASSERT_LEN(strLen, "CONNECT")
-        memset(str, 0, MAX_STRLEN);
-        inputStream.readRawData(str, qMin(MAX_STRLEN, strLen));
+        inputStream.readRawData(str.data(), qMin(maxStrLen, static_cast<int>(strLen)));
         remainingLength -= strLen;
-        d_ptr->clientId = QByteArray(str);
+        d_ptr->clientId = QByteArray(str.constData(), strLen);
 
         if (connectFlags().testFlag(Mqtt::ConnectFlagWill)) {
             ASSERT_LEN(2, "CONNECT")
             inputStream >> strLen;
             remainingLength -= 2;
             ASSERT_LEN(strLen, "CONNECT")
-            memset(str, 0, MAX_STRLEN);
-            inputStream.readRawData(str, qMin(MAX_STRLEN, strLen));
+            inputStream.readRawData(str.data(), qMin(maxStrLen, static_cast<int>(strLen)));
             remainingLength -= strLen;
-            d_ptr->willTopic = QByteArray(str);
+            d_ptr->willTopic = QByteArray(str.constData(), strLen);
 
             ASSERT_LEN(2, "CONNECT")
             inputStream >> strLen;
             remainingLength -= 2;
             ASSERT_LEN(strLen, "CONNECT")
-            memset(str, 0, MAX_STRLEN);
-            inputStream.readRawData(str, qMin(MAX_STRLEN, strLen));
+            inputStream.readRawData(str.data(), qMin(maxStrLen, static_cast<int>(strLen)));
             remainingLength -= strLen;
-            d_ptr->willMessage = QByteArray(str);
+            d_ptr->willMessage = QByteArray(str.constData(), strLen);
         } else {
             if (willRetain() || willQoS() != Mqtt::QoS0) {
                 qCWarning(dbgProto) << "Bad CONNECT packet. Will flag not set but WillQoS or WillRetain set.";
@@ -468,10 +464,9 @@ int MqttPacket::parse(const QByteArray &buffer)
             inputStream >> strLen;
             remainingLength -= 2;
             ASSERT_LEN(strLen, "CONNECT")
-            memset(str, 0, MAX_STRLEN);
-            inputStream.readRawData(str, qMin(MAX_STRLEN, strLen));
+            inputStream.readRawData(str.data(), qMin(maxStrLen, static_cast<int>(strLen)));
             remainingLength -= strLen;
-            d_ptr->username = QByteArray(str);
+            d_ptr->username = QByteArray(str.constData(), strLen);
         } else {
             if (connectFlags().testFlag(Mqtt::ConnectFlagPassword)) {
                 qCWarning(dbgProto) << "Bad CONNECT packet. Username flag not set but password is set.";
@@ -484,10 +479,9 @@ int MqttPacket::parse(const QByteArray &buffer)
             inputStream >> strLen;
             remainingLength -= 2;
             ASSERT_LEN(strLen, "CONNECT")
-            memset(str, 0, MAX_STRLEN);
-            inputStream.readRawData(str, qMin(MAX_STRLEN, strLen));
+            inputStream.readRawData(str.data(), qMin(maxStrLen, static_cast<int>(strLen)));
             remainingLength -= strLen;
-            d_ptr->password = QByteArray(str);
+            d_ptr->password = QByteArray(str.constData(), strLen);
         }
         VERIFY_LEN(0, "CONNECT")
         break;
@@ -510,10 +504,9 @@ int MqttPacket::parse(const QByteArray &buffer)
         inputStream >> strLen;
         remainingLength -= 2;
         ASSERT_LEN(strLen, "PUBLISH")
-        memset(str, 0, MAX_STRLEN);
-        inputStream.readRawData(str, qMin(MAX_STRLEN, strLen));
+        inputStream.readRawData(str.data(), qMin(maxStrLen, static_cast<int>(strLen)));
         remainingLength -= strLen;
-        d_ptr->topic = QByteArray(str);
+        d_ptr->topic = QByteArray(str.constData(), strLen);
 
         if (qos() == Mqtt::QoS1 || qos() == Mqtt::QoS2) {
             ASSERT_LEN(2, "PUBLISH")
@@ -521,10 +514,9 @@ int MqttPacket::parse(const QByteArray &buffer)
             remainingLength -= 2;
         }
 
-        memset(str, 0, MAX_STRLEN);
-        qint16 payloadLen = qMin(MAX_STRLEN, remainingLength);
-        inputStream.readRawData(str, payloadLen);
-        d_ptr->payload = QByteArray(str, payloadLen);
+        const int payloadLen = qMin(maxStrLen, static_cast<int>(remainingLength));
+        inputStream.readRawData(str.data(), payloadLen);
+        d_ptr->payload = QByteArray(str.constData(), payloadLen);
         break;
     }
     case TypePuback:
@@ -557,11 +549,10 @@ int MqttPacket::parse(const QByteArray &buffer)
             inputStream >> strLen;
             remainingLength -= 2;
             ASSERT_LEN(strLen, "SUBSCRIBE")
-            memset(str, 0, MAX_STRLEN);
-            inputStream.readRawData(str, qMin(MAX_STRLEN, strLen));
+            inputStream.readRawData(str.data(), qMin(maxStrLen, static_cast<int>(strLen)));
             remainingLength -= strLen;
             MqttSubscription subscription;
-            subscription.setTopicFilter(QByteArray(str));
+            subscription.setTopicFilter(QByteArray(str.constData(), strLen));
 
             ASSERT_LEN(1, "SUBSCRIBE")
             quint8 requestedQoS;
@@ -600,11 +591,10 @@ int MqttPacket::parse(const QByteArray &buffer)
             inputStream >> strLen;
             remainingLength -= 2;
             ASSERT_LEN(strLen, "UNSUBSCRIBE")
-            memset(str, 0, MAX_STRLEN);
-            inputStream.readRawData(str, qMin(MAX_STRLEN, strLen));
+            inputStream.readRawData(str.data(), qMin(maxStrLen, static_cast<int>(strLen)));
             remainingLength -= strLen;
             MqttSubscription subscription;
-            subscription.setTopicFilter(QByteArray(str));
+            subscription.setTopicFilter(QByteArray(str.constData(), strLen));
             d_ptr->subscriptions.append(subscription);
         }
         }
