@@ -1,3 +1,10 @@
+nymea-mqtt (1.15.0) noble; urgency=medium
+
+  [ Simon Stürz ]
+  * Fix Clang-safe MQTT packet parsing
+
+ -- jenkins <developer@nymea.io>  Tue, 14 Apr 2026 14:23:11 +0200
+
 nymea-mqtt (1.14.2) noble; urgency=medium
 
 
