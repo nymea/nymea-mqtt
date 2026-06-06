@@ -1,3 +1,8 @@
+nymea-mqtt (1.15.1) noble; urgency=medium
+
+
+ -- jenkins <developer@nymea.io>  Sat, 06 Jun 2026 21:00:59 +0200
+
 nymea-mqtt (1.15.0) noble; urgency=medium
 
   [ Simon Stürz ]
